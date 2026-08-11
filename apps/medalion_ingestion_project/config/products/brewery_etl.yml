@@ -1,0 +1,16 @@
+product: brewery_etl
+domain: brewery
+table: breweries
+
+partition_keys:
+  - country
+  - state
+  - load_date
+
+dq:
+  null_columns:
+    - id
+    - name
+    - brewery_type
+  min_volume: 1
+  check_duplicates: true

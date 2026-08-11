@@ -1,0 +1,23 @@
+countries:
+  default: BR
+
+kpi:
+  expected_count: 3
+  baseline_count: 3
+  max_variance_pct: 0.0
+  grain: daily
+  export_channel: analytics
+
+brewery:
+  min_volume: 1
+  domain: brewery
+  table: breweries
+  required_api_fields:
+    - id
+    - name
+    - brewery_type
+
+pools:
+  brewery_pool:
+    slots: 2
+    description: Brewery ETL concurrency

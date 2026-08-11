@@ -1,0 +1,13 @@
+environment: local
+
+lake:
+  root: ./data/lake
+  backend: local
+  bucket: data-platform-lake
+
+secrets:
+  backend: env
+  region: us-east-1
+
+logging:
+  level: INFO

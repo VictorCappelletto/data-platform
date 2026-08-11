@@ -1,38 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "data-platform"
-version = "0.1.0"
-description = "Portfolio data platform monorepo — shared libs + HDL/KPI/analytics products"
+version = "0.2.0"
+description = "Portfolio data platform — YAML configs, unified src, medallion lake"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Victor Cappelletto" }]
-dependencies = []
+dependencies = [
+  "pyyaml>=6.0",
+  "requests>=2.32",
+  "python-dotenv>=1.0",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.6", "python-dotenv>=1.0"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
 spark = ["pyspark>=3.5", "delta-spark>=3.2"]
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
-testpaths = [
-  "libs/platform_utils/tests",
-  "libs/platform_dbutils/tests",
-  "libs/platform_secrets/tests",
-  "libs/platform_dq/tests",
-  "products/hdl_ingest/tests",
-  "products/kpi_metrics/tests",
-  "products/analytics_export/tests",
-  "products/brewery_etl/tests",
-]
-pythonpath = [
-  "libs/platform_utils/src",
-  "libs/platform_dbutils/src",
-  "libs/platform_secrets/src",
-  "libs/platform_dq/src",
-  "products/hdl_ingest/src",
-  "products/kpi_metrics/src",
-  "products/analytics_export/src",
-  "products/brewery_etl/src",
-]
+testpaths = ["tests"]
+pythonpath = ["src", "apps/medalion_ingestion_project/src"]
 
 [tool.ruff]
 line-length = 100

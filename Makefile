@@ -1,24 +1,17 @@
-.PHONY: help install test lint demo dag-validate up down
+.PHONY: help install test lint demo dag-validate up down inspect
 
 help:
-	@echo "Targets: install | test | lint | demo | dag-validate | up | down"
+	@echo "Targets: install | test | lint | demo | dag-validate | inspect | up | down"
 
 install:
-	python -m pip install -U pip pytest ruff python-dotenv
-	python -m pip install -e libs/platform_utils
-	python -m pip install -e libs/platform_secrets
-	python -m pip install -e libs/platform_dbutils
-	python -m pip install -e libs/platform_dq
-	python -m pip install -e products/hdl_ingest
-	python -m pip install -e products/kpi_metrics
-	python -m pip install -e products/analytics_export
-	python -m pip install -e products/brewery_etl
+	python -m pip install -U pip
+	python -m pip install -e ".[dev]"
 
 test:
 	pytest -q
 
 lint:
-	ruff check libs products dags scripts
+	ruff check src dags scripts tests apps
 
 demo:
 	python scripts/run_demo_pipeline.py
@@ -28,6 +21,9 @@ brewery-demo:
 
 dag-validate:
 	python scripts/validate_dags.py
+
+inspect:
+	python scripts/inspect_lake.py
 
 up:
 	docker compose up -d postgres minio airflow-init airflow-webserver airflow-scheduler
