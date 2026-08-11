@@ -36,8 +36,7 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 
-# Secrets never commit
-**/secrets/**
+# Secrets never commit (encrypted/runtime only — not platform source code)
 encrypted-secrets/
 *.pem
 *.key
