@@ -21,6 +21,7 @@ testpaths = [
   "products/hdl_ingest/tests",
   "products/kpi_metrics/tests",
   "products/analytics_export/tests",
+  "products/brewery_etl/tests",
 ]
 pythonpath = [
   "libs/platform_utils/src",
@@ -30,6 +31,7 @@ pythonpath = [
   "products/hdl_ingest/src",
   "products/kpi_metrics/src",
   "products/analytics_export/src",
+  "products/brewery_etl/src",
 ]
 
 [tool.ruff]

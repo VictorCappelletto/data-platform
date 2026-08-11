@@ -16,7 +16,8 @@ data-platform/
 ├── products/
 │   ├── hdl_ingest         # landing → bronze → silver (+ is_current)
 │   ├── kpi_metrics        # silver → gold KPIs
-│   └── analytics_export   # gold + DQ → export
+│   ├── analytics_export   # gold + DQ → export
+│   └── brewery_etl        # Open Brewery API → partitioned medallion
 ├── dags/                  # thin Airflow DAGs
 ├── conf/{local,dev,prod}  # env templates (no secrets)
 ├── seeds/                 # synthetic CSV
@@ -45,8 +46,9 @@ flowchart LR
 # 1) install editable packages
 make install
 
-# 2) run full demo pipeline (no Docker required)
+# 2) run demos (no Docker required)
 make demo
+make brewery-demo
 
 # 3) unit tests + DAG import check
 make test
@@ -73,6 +75,7 @@ DAGs: `hdl_ingest`, `kpi_metrics`, `analytics_export`.
 | `hdl_ingest` | Ingest synthetic orders into medallion layers |
 | `kpi_metrics` | Compute demo KPIs into gold |
 | `analytics_export` | DQ gate + consumption export |
+| `brewery_etl` | Open Brewery API ETL (Desafio_InBev adapted, partitioned lake) |
 
 ## Cloud path (phase 2)
 

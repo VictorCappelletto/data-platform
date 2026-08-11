@@ -12,6 +12,7 @@ install:
 	python -m pip install -e products/hdl_ingest
 	python -m pip install -e products/kpi_metrics
 	python -m pip install -e products/analytics_export
+	python -m pip install -e products/brewery_etl
 
 test:
 	pytest -q
@@ -21,6 +22,9 @@ lint:
 
 demo:
 	python scripts/run_demo_pipeline.py
+
+brewery-demo:
+	python scripts/run_brewery_demo.py
 
 dag-validate:
 	python scripts/validate_dags.py

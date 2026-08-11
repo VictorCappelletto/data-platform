@@ -7,7 +7,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
-    PYTHONPATH: /opt/airflow:/opt/airflow/libs/platform_utils/src:/opt/airflow/libs/platform_dbutils/src:/opt/airflow/libs/platform_secrets/src:/opt/airflow/libs/platform_dq/src:/opt/airflow/products/hdl_ingest/src:/opt/airflow/products/kpi_metrics/src:/opt/airflow/products/analytics_export/src
+    PYTHONPATH: /opt/airflow:/opt/airflow/libs/platform_utils/src:/opt/airflow/libs/platform_dbutils/src:/opt/airflow/libs/platform_secrets/src:/opt/airflow/libs/platform_dq/src:/opt/airflow/products/hdl_ingest/src:/opt/airflow/products/kpi_metrics/src:/opt/airflow/products/analytics_export/src:/opt/airflow/products/brewery_etl/src
     LAKE_ROOT: /opt/airflow/data/lake
     PLATFORM_ENV: local
     LAKE_BACKEND: local
