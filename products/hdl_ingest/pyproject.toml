@@ -1,0 +1,17 @@
+[project]
+name = "hdl-ingest"
+version = "0.1.0"
+description = "HDL-style ingest product: landing → bronze → silver"
+requires-python = ">=3.10"
+dependencies = [
+  "platform-utils",
+  "platform-dbutils",
+  "platform-secrets",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
