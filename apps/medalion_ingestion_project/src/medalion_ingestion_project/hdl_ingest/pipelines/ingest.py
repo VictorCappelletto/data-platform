@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from dataplatform.dbutils.paths import Layer
 from medalion_ingestion_project.base import ProjectProductBase
 from medalion_ingestion_project.hdl_ingest.tables.orders import OrdersTable
-
-from dataplatform.dbutils.paths import Layer
 
 
 class HdlIngestPipeline(ProjectProductBase):

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.base import ProjectProductBase
-
 from dataplatform.dbutils.paths import Layer
+from medalion_ingestion_project.base import ProjectProductBase
 
 
 class KpiMetricsPipeline(ProjectProductBase):

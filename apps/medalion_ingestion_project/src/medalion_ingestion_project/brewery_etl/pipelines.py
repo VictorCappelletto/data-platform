@@ -4,6 +4,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from dataplatform.dbutils.paths import Layer
+from dataplatform.dq import CheckResult, null_rate, run_checks
 from medalion_ingestion_project.base import ProjectProductBase
 from medalion_ingestion_project.brewery_etl.extract import BreweryExtractor
 from medalion_ingestion_project.brewery_etl.partition import (
@@ -12,9 +14,6 @@ from medalion_ingestion_project.brewery_etl.partition import (
     partition_path,
 )
 from medalion_ingestion_project.brewery_etl.transform import transform_breweries
-
-from dataplatform.dbutils.paths import Layer
-from dataplatform.dq import CheckResult, null_rate, run_checks
 
 
 class BreweryPipeline(ProjectProductBase):

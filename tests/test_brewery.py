@@ -1,6 +1,10 @@
 from pathlib import Path
 
 import pytest
+
+from dataplatform.config.loader import ConfigLoader
+from dataplatform.dbutils import Layer, LayerPaths
+from dataplatform.dq.runner import DataQualityError
 from medalion_ingestion_project.brewery_etl.partition import partition_key, partition_path
 from medalion_ingestion_project.brewery_etl.pipelines import (
     duplicate_ids,
@@ -9,10 +13,6 @@ from medalion_ingestion_project.brewery_etl.pipelines import (
     run_ingest_pipeline,
 )
 from medalion_ingestion_project.brewery_etl.transform import transform_breweries
-
-from dataplatform.config.loader import ConfigLoader
-from dataplatform.dbutils import Layer, LayerPaths
-from dataplatform.dq.runner import DataQualityError
 
 PROJECT = "medalion_ingestion_project"
 

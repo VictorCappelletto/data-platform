@@ -5,12 +5,12 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from medalion_ingestion_project.base import ProjectProductBase
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from dataplatform.secrets import get_secret
 from dataplatform.utils.logging import get_logger
+from medalion_ingestion_project.base import ProjectProductBase
 
 logger = get_logger(__name__)
 

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.base import ProjectProductBase
-
 from dataplatform.dbutils.paths import Layer
 from dataplatform.dq import null_rate, range_check, run_checks, volume_vs_baseline
+from medalion_ingestion_project.base import ProjectProductBase
 
 
 class AnalyticsExportPipeline(ProjectProductBase):

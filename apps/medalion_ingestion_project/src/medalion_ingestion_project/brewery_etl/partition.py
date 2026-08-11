@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from medalion_ingestion_project import PROJECT_ID
-
 from dataplatform.config.loader import ConfigLoader
 from dataplatform.dbutils.paths import Layer, LayerPaths
 from dataplatform.utils.dates import utc_today
+from medalion_ingestion_project import PROJECT_ID
 
 
 def load_date(value: date | None = None) -> str:
