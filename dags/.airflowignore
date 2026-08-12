@@ -1,0 +1,2 @@
+# Ignore factory module — not a DAG file
+factory.py

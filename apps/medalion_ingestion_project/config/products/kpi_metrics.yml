@@ -1,0 +1,21 @@
+product: kpi_metrics
+source:
+  layer: silver
+  domain: orders
+  table: orders
+target:
+  layer: gold
+  domain: kpi
+  table: orders_daily
+
+metrics:
+  - name: gmv_completed
+    filter: status == completed
+    aggregation: sum
+    field: amount
+  - name: active_customers
+    aggregation: count_distinct
+    field: customer_id
+  - name: completion_rate
+    aggregation: ratio
+    numerator_filter: status == completed

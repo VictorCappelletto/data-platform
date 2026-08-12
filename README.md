@@ -1,93 +1,79 @@
 # data-platform
 
-Portfolio **data platform monorepo**: shared libraries + multiple products (HDL / KPI / analytics), medallion lake (`landing → bronze → silver → gold`), Airflow orchestration, and GitHub Actions CI.
+Portfolio **data platform monorepo** — shared SDK, isolated apps, config-driven Airflow orchestration, medallion lake.
 
-Inspired by enterprise platform patterns (shared utils, env configs, thin orchestration, DQ gates) — **100% greenfield / synthetic data**. No proprietary code.
+Inspired by enterprise patterns (GROW + frontline-force app layout).
 
 ## Architecture
 
 ```text
 data-platform/
-├── libs/                  # shared across all products
-│   ├── platform_utils     # logging, retry, dates
-│   ├── platform_dbutils   # LayerPaths, LakeIO, Spark helper
-│   ├── platform_secrets   # env | AWS Secrets Manager
-│   └── platform_dq        # null/range/volume checks
-├── products/
-│   ├── hdl_ingest         # landing → bronze → silver (+ is_current)
-│   ├── kpi_metrics        # silver → gold KPIs
-│   └── analytics_export   # gold + DQ → export
-├── dags/                  # thin Airflow DAGs
-├── conf/{local,dev,prod}  # env templates (no secrets)
-├── seeds/                 # synthetic CSV
-└── .github/workflows/ci.yml
+├── config/                          # global platform config only
+│   ├── platform/                    # local | dev | prod
+│   ├── constants.yml                # shared medallion layers
+│   └── env/                         # optional .env templates per env
+├── src/dataplatform/                # shared SDK (dbutils, dq, secrets, config loader)
+├── apps/
+│   └── medalion_ingestion_project/  # self-contained app (like frontline-force-dm-app)
+│       ├── config/                  # app.yml, dags/, products/, constants.yml
+│       ├── src/                     # pipeline code
+│       ├── dags/                    # thin Airflow DAG modules
+│       └── seeds/
+├── dags/factory.py                  # shared DAG builder
+├── scripts/
+└── tests/
 ```
 
-```mermaid
-flowchart LR
-  seeds[seeds] --> hdl[hdl_ingest]
-  hdl --> bronze[bronze]
-  hdl --> silver[silver]
-  silver --> kpi[kpi_metrics]
-  kpi --> gold[gold]
-  gold --> analytics[analytics_export]
-  hdl --> libs[shared libs]
-  kpi --> libs
-  analytics --> libs
-  dags[Airflow DAGs] --> hdl
-  dags --> kpi
-  dags --> analytics
-```
+## Why this layout?
+
+| Before (confusing) | Now (clear) |
+|--------------------|-------------|
+| `conf/` + `configs/` at root | Single `config/` for global platform |
+| `projects/.../configs/` | `apps/.../config/` (singular, inside the app) |
+| `project.yml` at app root | `config/app.yml` with everything else |
+
+Each **app** is self-contained. Global infra stays in `config/` + `src/dataplatform/`.
+
+## Config layers
+
+| Layer | Path | Role |
+|-------|------|------|
+| Platform | `config/platform/{env}.yml` | Lake, secrets, logging |
+| App | `apps/<id>/config/app.yml` | App id, lake prefix, domain settings |
+| Product | `apps/<id>/config/products/*.yml` | Tables, DQ, KPI definitions |
+| DAG | `apps/<id>/config/dags/*.yml` | Schedule, tasks, pools |
 
 ## Quick start
 
 ```bash
-# 1) install editable packages
-make install
+python -m pip install -e ".[dev]"
 
-# 2) run full demo pipeline (no Docker required)
-make demo
+set DATA_PLATFORM_APP=medalion_ingestion_project   # Windows
+# export DATA_PLATFORM_APP=medalion_ingestion_project
 
-# 3) unit tests + DAG import check
-make test
-make dag-validate
+python scripts/run_demo_pipeline.py
+pytest -q
+python scripts/validate_dags.py
+python scripts/inspect_lake.py
 ```
 
-Lake output lands under `./data/lake/local/{landing,bronze,silver,gold}/...`.
-
-## Docker (Airflow + MinIO + Postgres + Spark)
+## Docker
 
 ```bash
 cp .env.example .env
-make up
+docker compose up -d postgres minio airflow-init airflow-webserver airflow-scheduler
 # UI: http://localhost:8080  (admin / admin)
-# MinIO: http://localhost:9001 (minioadmin / minioadmin)
 ```
 
-DAGs: `hdl_ingest`, `kpi_metrics`, `analytics_export`.
+## Adding a new app
 
-## Products
+1. Copy `apps/medalion_ingestion_project/` → `apps/<new_app_id>/`
+2. Edit `config/app.yml`
+3. Adapt Python package under `src/`
+4. Set `DATA_PLATFORM_APP=<new_app_id>`
+5. Mount `apps/<new_app_id>/` in `docker-compose.yml`
 
-| Product | Role |
-|---------|------|
-| `hdl_ingest` | Ingest synthetic orders into medallion layers |
-| `kpi_metrics` | Compute demo KPIs into gold |
-| `analytics_export` | DQ gate + consumption export |
-
-## Cloud path (phase 2)
-
-Templates in `conf/dev` and `conf/prod`:
-
-- `LAKE_BACKEND=s3` + `LAKE_BUCKET=...`
-- `PLATFORM_SECRETS_BACKEND=aws`
-- example IAM policy: `conf/dev/iam-policy.example.json`
-
-Spark optional: `pip install '.[spark]'` then `python scripts/submit_job.py`.
-
-## Docs
-
-- [Architecture](docs/architecture.md)
-- [Lineage](docs/lineage.md)
+See [docs/architecture.md](docs/architecture.md) for details.
 
 ## License
 

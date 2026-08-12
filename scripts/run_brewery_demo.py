@@ -1,4 +1,4 @@
-"""Local helper to run the full demo pipeline without Airflow."""
+"""Run brewery ETL using project YAML config (fixture or API)."""
 
 from __future__ import annotations
 
@@ -18,14 +18,10 @@ def main() -> None:
     if str(app_src) not in sys.path:
         sys.path.insert(0, str(app_src))
 
-    from medalion_ingestion_project.analytics_export.pipelines.export import run_export
-    from medalion_ingestion_project.hdl_ingest.pipelines.ingest import run_pipeline
-    from medalion_ingestion_project.kpi_metrics.pipelines.metrics import run_kpi_pipeline
+    from medalion_ingestion_project.brewery_etl.pipelines import run_full_pipeline
 
-    stats = run_pipeline()
-    kpis = run_kpi_pipeline()
-    exported = run_export()
-    print({"ingest": stats, "kpis": kpis, "export_rows": len(exported)})
+    stats = run_full_pipeline()
+    print(stats)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "5494-ea7b-0a58-000000000000",
+    "name": "MadTree Brewing",
+    "brewery_type": "regional",
+    "address_1": "3301 Wasson Rd",
+    "city": "Cincinnati",
+    "state_province": "Ohio",
+    "postal_code": "45209",
+    "country": "United States",
+    "longitude": -84.4230146,
+    "latitude": 39.145354,
+    "phone": "5138368733",
+    "website_url": "http://www.madtreebrewing.com",
+    "state": "Ohio",
+    "street": "3301 Wasson Rd"
+  },
+  {
+    "id": "5494-ea7b-0a58-000000000001",
+    "name": "Sierra Nevada Brewing Co.",
+    "brewery_type": "regional",
+    "address_1": "1075 E 20th St",
+    "city": "Chico",
+    "state_province": "California",
+    "postal_code": "95928",
+    "country": "United States",
+    "longitude": -121.805728,
+    "latitude": 39.723356,
+    "phone": "5308933520",
+    "website_url": "http://www.sierranevada.com",
+    "state": "California",
+    "street": "1075 E 20th St"
+  },
+  {
+    "id": "5494-ea7b-0a58-000000000002",
+    "name": "Dogfish Head Craft Brewery",
+    "brewery_type": "regional",
+    "address_1": "6 Cannery Village Center",
+    "city": "Milton",
+    "state_province": "Delaware",
+    "postal_code": "19968",
+    "country": "United States",
+    "longitude": -75.310624,
+    "latitude": 38.7775,
+    "phone": "3026841000",
+    "website_url": "http://www.dogfish.com",
+    "state": "Delaware",
+    "street": "6 Cannery Village Center"
+  },
+  {
+    "id": "5494-ea7b-0a58-000000000000",
+    "name": "MadTree Brewing Duplicate",
+    "brewery_type": "regional",
+    "city": "Cincinnati",
+    "state": "Ohio",
+    "country": "United States"
+  }
+]

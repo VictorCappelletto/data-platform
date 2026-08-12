@@ -1,0 +1,13 @@
+environment: dev
+
+lake:
+  root: s3a://data-platform-lake
+  backend: s3
+  bucket: data-platform-lake
+
+secrets:
+  backend: aws
+  region: us-east-1
+
+logging:
+  level: INFO

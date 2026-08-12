@@ -1,4 +1,6 @@
-# Data lineage (demo)
+# Data lineage
+
+## Generic demo (orders)
 
 ```text
 seeds/orders_raw.csv
@@ -19,10 +21,29 @@ gold/kpi/orders_daily          (gmv_completed, active_customers, completion_rate
 gold/analytics/kpi_export      (DQ-gated consumption snapshot)
 ```
 
-## KPI definitions (synthetic)
+## Brewery ETL (Desafio_InBev adapted)
 
-| KPI | Rule |
-|-----|------|
-| `gmv_completed` | Sum of `amount` where `status=completed` and `is_current` |
-| `active_customers` | Distinct `customer_id` on current rows |
-| `completion_rate` | completed / current |
+```text
+Open Brewery API  (or seeds/breweries_sample.json)
+        │
+        ▼
+landing/brewery/breweries/country=*/state=*/load_date=*/
+        │
+        ▼
+bronze/brewery/breweries/...   (typed / normalized)
+        │
+        ▼
+silver/brewery/breweries/...   (deduped by id)
+        │
+        ▼  platform_dq (nulls, duplicates, min volume)
+gold/brewery/breweries/...     (validated consumption layer)
+```
+
+### Airflow orchestration
+
+| Step | DAG | Schedule |
+|------|-----|----------|
+| Ingest | `brewery_ingest` | 06:00 daily |
+| DQ + Gold | `brewery_dq_gold` | 07:30 daily |
+
+Both use pool `brewery_pool` (1 slot) and `max_active_runs=1`.

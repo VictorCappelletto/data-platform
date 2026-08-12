@@ -1,0 +1,15 @@
+dag_id: brewery_ingest
+schedule: "0 6 * * *"
+catchup: false
+max_active_runs: 1
+max_active_tasks: 2
+tags: [brewery, ingest, medallion]
+owner: data-platform
+product: brewery_etl
+pool: brewery_pool
+retries: 2
+retry_delay_minutes: 5
+
+tasks:
+  - task_id: ingest_landing_bronze_silver
+    callable: medalion_ingestion_project.brewery_etl.pipelines:run_ingest_pipeline

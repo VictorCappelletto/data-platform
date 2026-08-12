@@ -1,0 +1,10 @@
+dag_id: kpi_metrics
+schedule: "@daily"
+catchup: false
+tags: [kpi, gold]
+owner: data-platform
+product: kpi_metrics
+
+tasks:
+  - task_id: compute_kpis
+    callable: medalion_ingestion_project.kpi_metrics.pipelines.metrics:run_kpi_pipeline

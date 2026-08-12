@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check src dags scripts tests apps
+      - name: Test
+        run: pytest -q
+      - name: Validate DAGs import
+        run: python scripts/validate_dags.py
