@@ -165,9 +165,10 @@ class ConfigLoader:
         env = (environment or os.getenv("PLATFORM_ENV", "local")).lower()
         raw = self.read_yaml(self.config_dir / "app.yml")
         app_id = raw.get("app_id") or raw.get("project_id") or self.app
-        env_overrides = raw.get("environments", {}).get(env, {})
-        brewery_raw = {**raw["brewery"], **env_overrides.get("brewery", {})}
-        orders_raw = {**raw["orders"], **env_overrides.get("orders", {})}
+        extraction = self.process("extraction", env)
+        ingestion = self.process("ingestion", env)
+        brewery_raw = extraction.get("brewery", raw.get("brewery", {}))
+        orders_raw = ingestion.get("orders", raw.get("orders", {}))
         return AppSettings(
             app_id=app_id,
             name=raw.get("name", app_id),
@@ -195,8 +196,55 @@ class ConfigLoader:
     def project_settings(self, environment: str | None = None) -> AppSettings:
         return self.app_settings(environment)
 
-    def product(self, name: str) -> dict[str, Any]:
-        return self.read_yaml(self.config_dir / f"products/{name}.yml")
+    def _merge_env_overrides(self, raw: dict[str, Any], environment: str) -> dict[str, Any]:
+        merged = {k: v for k, v in raw.items() if k != "environments"}
+        overrides = raw.get("environments", {}).get(environment, {})
+        for key, value in overrides.items():
+            if (
+                key in merged
+                and isinstance(merged[key], dict)
+                and isinstance(value, dict)
+            ):
+                merged[key] = {**merged[key], **value}
+            else:
+                merged[key] = value
+        return merged
+
+    def process(self, name: str, environment: str | None = None) -> dict[str, Any]:
+        """Load apps/<app>/config/<process>/config_<process>.yml with env overrides."""
+        if not self.app_dir:
+            raise ValueError("process() requires DATA_PLATFORM_APP or app= argument")
+        env = (environment or os.getenv("PLATFORM_ENV", "local")).lower()
+        raw = self.read_yaml(self.config_dir / name / f"config_{name}.yml")
+        return self._merge_env_overrides(raw, env)
+
+    def product(self, name: str, environment: str | None = None) -> dict[str, Any]:
+        """Resolve pipeline config — legacy products/ or process/domain mapping."""
+        legacy = self.config_dir / f"products/{name}.yml"
+        if legacy.exists():
+            return self.read_yaml(legacy)
+
+        env = environment
+        mapping: dict[str, tuple[str, str]] = {
+            "hdl_ingest": ("ingestion", "orders"),
+            "kpi_metrics": ("transformation", "kpi"),
+            "analytics_export": ("transformation", "analytics_export"),
+        }
+        if name in mapping:
+            process_name, domain_key = mapping[name]
+            section = self.process(process_name, env).get(domain_key, {})
+            return {"product": name, **section}
+
+        if name == "brewery_etl":
+            ingestion = self.process("ingestion", env).get("brewery", {})
+            transformation = self.process("transformation", env).get("brewery", {})
+            merged = dict(ingestion)
+            if "dq" in transformation:
+                merged["dq"] = transformation["dq"]
+            merged["product"] = name
+            return merged
+
+        raise FileNotFoundError(f"Unknown product/process config: {name}")
 
     def dag(self, dag_id: str) -> DagConfig:
         raw = self.read_yaml(self.config_dir / f"dags/{dag_id}.yml")

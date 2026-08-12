@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.hdl_ingest.tables.base import LakeTable
+from medalion_ingestion_project.ingestion.orders.tables.base import LakeTable
 
 
 class OrdersTable(LakeTable):

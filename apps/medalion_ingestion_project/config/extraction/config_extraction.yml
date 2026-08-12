@@ -1,0 +1,21 @@
+process: extraction
+
+brewery:
+  api_url: https://api.openbrewerydb.org/v1/breweries
+  per_page: 50
+  max_pages: 3
+  use_fixture: true
+  fixture_path: seeds/breweries_sample.json
+  retry_attempts: 3
+  api_timeout: 30
+
+environments:
+  dev:
+    brewery:
+      use_fixture: false
+      max_pages: 10
+  prod:
+    brewery:
+      use_fixture: false
+      max_pages: 20
+      api_timeout: 60

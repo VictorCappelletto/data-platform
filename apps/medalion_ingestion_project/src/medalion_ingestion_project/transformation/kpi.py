@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from dataplatform.dbutils.paths import Layer
-from medalion_ingestion_project.base import ProjectProductBase
+from medalion_ingestion_project.base import ProjectProcessBase
 
 
-class KpiMetricsPipeline(ProjectProductBase):
+class KpiTransformPipeline(ProjectProcessBase):
     def __init__(self, environment: str | None = None) -> None:
-        super().__init__("kpi_metrics", environment)
+        super().__init__("transformation", "kpi", environment)
 
     def compute_kpis(self, silver_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         country = self.constants["countries"]["default"]
@@ -53,8 +53,8 @@ class KpiMetricsPipeline(ProjectProductBase):
 
 
 def compute_kpis(silver_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return KpiMetricsPipeline().compute_kpis(silver_rows)
+    return KpiTransformPipeline().compute_kpis(silver_rows)
 
 
 def run_kpi_pipeline(**_kwargs: Any) -> list[dict[str, Any]]:
-    return KpiMetricsPipeline().run_kpi_pipeline()
+    return KpiTransformPipeline().run_kpi_pipeline()

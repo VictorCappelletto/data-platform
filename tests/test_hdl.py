@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from medalion_ingestion_project.hdl_ingest.pipelines.ingest import run_pipeline
-from medalion_ingestion_project.hdl_ingest.tables.orders import OrdersTable
+from medalion_ingestion_project.ingestion.orders.pipeline import run_pipeline
+from medalion_ingestion_project.ingestion.orders.tables.orders import OrdersTable
 
 PROJECT = "medalion_ingestion_project"
 

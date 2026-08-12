@@ -14,7 +14,7 @@ Portfolio-ready data platform with:
 |-----------------|-----------|
 | `notebooks/frontline-force-dm-app/` | `apps/medalion_ingestion_project/` |
 | `pipelines/.../configs/databricks/` | `apps/.../config/dags/` |
-| Domain config inside notebooks (`kpi/config/`) | `apps/.../config/products/` |
+| Domain config inside notebooks (`kpi/config/`) | `apps/.../config/<processo>/config_<processo>.yml` |
 | Databricks job JSON | Airflow YAML + thin Python DAGs |
 
 ## Config layers
@@ -23,8 +23,8 @@ Portfolio-ready data platform with:
 |-------|------|------|
 | Platform | `config/platform/{env}.yml` | Lake root, secrets, logging |
 | Global constants | `config/constants.yml` | Medallion layer names |
-| App | `apps/<id>/config/app.yml` | App id, lake prefix, brewery/orders |
-| Product | `apps/<id>/config/products/*.yml` | Domain tables, DQ, KPIs |
+| App | `apps/<id>/config/app.yml` | App id, lake prefix |
+| Process | `apps/<id>/config/<processo>/config_<processo>.yml` | Domínios por etapa (extraction, ingestion, transformation) |
 | DAG | `apps/<id>/config/dags/*.yml` | Schedule, tasks, pools |
 | App constants | `apps/<id>/config/constants.yml` | KPI, brewery, pools |
 
@@ -37,16 +37,20 @@ Portfolio-ready data platform with:
 | `dataplatform.config` | YAML loader, `PlatformSettings`, `AppSettings` |
 | `dataplatform.dbutils` | `LayerPaths`, `LakeIO`, Spark |
 | `dataplatform.dq` | Checks + gate |
-| `apps/<id>/src/<package>/` | Pipelines extending `ProjectProductBase` |
+| `apps/<id>/src/<package>/` | Pipelines por processo (`extraction/`, `ingestion/`, `transformation/`) |
+
+Cada processo possui scripts locais em `src/<processo>/scripts/` para rodar sem Airflow.
 
 ## Active app: `medalion_ingestion_project`
 
-| Product | Layers |
-|---------|--------|
-| `hdl_ingest` | landing → bronze → silver |
-| `kpi_metrics` | silver → gold |
-| `analytics_export` | gold → export + DQ |
-| `brewery_etl` | partitioned medallion |
+| Processo | Domínio | Layers |
+|----------|---------|--------|
+| extraction | brewery | API/fixture → raw records |
+| ingestion | orders | landing → bronze → silver |
+| ingestion | brewery | landing → bronze → silver (particionado) |
+| transformation | kpi | silver → gold |
+| transformation | analytics_export | gold → export + DQ |
+| transformation | brewery | silver → DQ → gold |
 
 Lake path: `{lake_root}/{env}/medalion_ingestion_project/{layer}/{domain}/{table}/`
 

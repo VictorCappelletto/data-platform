@@ -1,4 +1,4 @@
-from medalion_ingestion_project.kpi_metrics.pipelines.metrics import compute_kpis
+from medalion_ingestion_project.transformation.kpi import compute_kpis
 
 
 def test_compute_kpis():

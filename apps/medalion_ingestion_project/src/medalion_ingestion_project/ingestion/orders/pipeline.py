@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any
 
 from dataplatform.dbutils.paths import Layer
-from medalion_ingestion_project.base import ProjectProductBase
-from medalion_ingestion_project.hdl_ingest.tables.orders import OrdersTable
+from medalion_ingestion_project.base import ProjectProcessBase
+from medalion_ingestion_project.ingestion.orders.tables.orders import OrdersTable
 
 
-class HdlIngestPipeline(ProjectProductBase):
+class OrdersIngestPipeline(ProjectProcessBase):
     def __init__(self, environment: str | None = None) -> None:
-        super().__init__("hdl_ingest", environment)
+        super().__init__("ingestion", "orders", environment)
 
     @property
     def domain(self) -> str:
@@ -62,16 +62,16 @@ class HdlIngestPipeline(ProjectProductBase):
 
 
 def run_landing(**_kwargs: Any) -> str:
-    return HdlIngestPipeline().run_landing()
+    return OrdersIngestPipeline().run_landing()
 
 
 def run_bronze(**_kwargs: Any) -> list[dict[str, Any]]:
-    return HdlIngestPipeline().run_bronze()
+    return OrdersIngestPipeline().run_bronze()
 
 
 def run_silver(**_kwargs: Any) -> list[dict[str, Any]]:
-    return HdlIngestPipeline().run_silver()
+    return OrdersIngestPipeline().run_silver()
 
 
 def run_pipeline(seed_csv: str | None = None, **_kwargs: Any) -> dict[str, int]:
-    return HdlIngestPipeline().run_pipeline(seed_csv)
+    return OrdersIngestPipeline().run_pipeline(seed_csv)

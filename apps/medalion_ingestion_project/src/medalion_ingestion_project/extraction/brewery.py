@@ -10,7 +10,7 @@ from urllib3.util.retry import Retry
 
 from dataplatform.secrets import get_secret
 from dataplatform.utils.logging import get_logger
-from medalion_ingestion_project.base import ProjectProductBase
+from medalion_ingestion_project.base import ProjectProcessBase
 
 logger = get_logger(__name__)
 
@@ -19,9 +19,9 @@ class ExtractionError(RuntimeError):
     """Raised when API extraction fails."""
 
 
-class BreweryExtractor(ProjectProductBase):
+class BreweryExtractor(ProjectProcessBase):
     def __init__(self, environment: str | None = None) -> None:
-        super().__init__("brewery_etl", environment)
+        super().__init__("extraction", "brewery", environment)
 
     def _session(self) -> requests.Session:
         cfg = self.project.brewery

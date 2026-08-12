@@ -4,12 +4,12 @@ from typing import Any
 
 from dataplatform.dbutils.paths import Layer
 from dataplatform.dq import null_rate, range_check, run_checks, volume_vs_baseline
-from medalion_ingestion_project.base import ProjectProductBase
+from medalion_ingestion_project.base import ProjectProcessBase
 
 
-class AnalyticsExportPipeline(ProjectProductBase):
+class AnalyticsExportPipeline(ProjectProcessBase):
     def __init__(self, environment: str | None = None) -> None:
-        super().__init__("analytics_export", environment)
+        super().__init__("transformation", "analytics_export", environment)
 
     def run_export(self) -> list[dict[str, Any]]:
         source = self.product_config["source"]
