@@ -8,11 +8,11 @@ from pathlib import Path
 
 APP_ID = "medalion_ingestion_project"
 _REPO = Path(__file__).resolve().parents[3]
-_APP_SRC = _REPO / "apps" / APP_ID / "src"
+_APP_ROOT = _REPO / "apps" / APP_ID
 _DAGS = _REPO / "dags"
 
-for path in (_REPO / "src", _APP_SRC, _DAGS):
-    if str(path) not in sys.path:
+for path in (_REPO / "src", _APP_ROOT / "src", _APP_ROOT, _DAGS):
+    if path.is_dir() and str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
 os.environ.setdefault("DATA_PLATFORM_ROOT", str(_REPO))

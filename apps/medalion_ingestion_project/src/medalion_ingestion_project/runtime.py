@@ -14,7 +14,8 @@ def bootstrap() -> Path:
     os.environ.setdefault("DATA_PLATFORM_ROOT", str(root))
     os.environ.setdefault("DATA_PLATFORM_APP", PROJECT_ID)
     os.environ.setdefault("PLATFORM_ENV", "local")
-    app_src = root / "apps" / PROJECT_ID / "src"
-    if str(app_src) not in sys.path:
-        sys.path.insert(0, str(app_src))
+    app_root = root / "apps" / PROJECT_ID
+    for path in (app_root / "src", app_root):
+        if path.is_dir() and str(path) not in sys.path:
+            sys.path.insert(0, str(path))
     return root

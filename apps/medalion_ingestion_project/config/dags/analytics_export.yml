@@ -5,7 +5,8 @@ tags: [analytics, dq, transformation]
 owner: data-platform
 process: transformation
 product: analytics_export
+orchestration: orchestration/analytics_export.yml
 
 tasks:
   - task_id: export_with_dq
-    callable: medalion_ingestion_project.transformation.export:run_export
+    orchestrator: orchestrator.analytics.analytics_export:run

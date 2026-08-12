@@ -1,0 +1,10 @@
+workflow_id: brewery_dq_gold
+dag_config: dags/brewery_dq_gold.yml
+description: Brewery DQ checks and gold layer write
+domain: brewery
+process: transformation
+
+tasks:
+  dq_and_gold:
+    orchestrator: orchestrator.brewery.dq_gold:run
+    domain_module: medalion_ingestion_project.transformation.brewery.pipeline:run_dq_gold

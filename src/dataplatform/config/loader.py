@@ -71,8 +71,13 @@ ProjectSettings = AppSettings
 @dataclass(frozen=True)
 class DagTaskConfig:
     task_id: str
-    callable: str
+    callable: str = ""
+    orchestrator: str = ""
     upstream: list[str] = field(default_factory=list)
+
+    @property
+    def entry_point(self) -> str:
+        return self.orchestrator or self.callable
 
 
 @dataclass(frozen=True)
@@ -246,12 +251,19 @@ class ConfigLoader:
 
         raise FileNotFoundError(f"Unknown product/process config: {name}")
 
+    def orchestration(self, workflow_id: str) -> dict[str, Any]:
+        """Load apps/<app>/config/orchestration/<workflow_id>.yml registry."""
+        if not self.app_dir:
+            raise ValueError("orchestration() requires DATA_PLATFORM_APP or app= argument")
+        return self.read_yaml(self.config_dir / f"orchestration/{workflow_id}.yml")
+
     def dag(self, dag_id: str) -> DagConfig:
         raw = self.read_yaml(self.config_dir / f"dags/{dag_id}.yml")
         tasks = [
             DagTaskConfig(
                 task_id=t["task_id"],
-                callable=t["callable"],
+                callable=t.get("callable", ""),
+                orchestrator=t.get("orchestrator", ""),
                 upstream=list(t.get("upstream", [])),
             )
             for t in raw["tasks"]

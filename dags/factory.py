@@ -26,9 +26,11 @@ def _default_app() -> str | None:
 
 
 def _ensure_app_path(app: str) -> None:
-    app_src = _REPO_ROOT / "apps" / app / "src"
-    if app_src.is_dir() and str(app_src) not in sys.path:
-        sys.path.insert(0, str(app_src))
+    app_root = _REPO_ROOT / "apps" / app
+    app_src = app_root / "src"
+    for path in (app_src, app_root):
+        if path.is_dir() and str(path) not in sys.path:
+            sys.path.insert(0, str(path))
 
 
 from dataplatform.config.loader import ConfigLoader, DagConfig  # noqa: E402
@@ -69,7 +71,7 @@ def build_dag(config: DagConfig):
         for task in config.tasks:
             operators[task.task_id] = PythonOperator(
                 task_id=task.task_id,
-                python_callable=_import_callable(task.callable),
+                python_callable=_import_callable(task.entry_point),
             )
         for task in config.tasks:
             for upstream in task.upstream:

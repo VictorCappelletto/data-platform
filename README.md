@@ -77,7 +77,8 @@ data-platform/
 │
 ├── apps/                           # APPS (cada um autocontido)
 │   └── medalion_ingestion_project/
-│       ├── config/                 #   app.yml, dags/, <processo>/config_<processo>.yml
+│       ├── config/                 #   app.yml, dags/, orchestration/, <processo>/
+│       ├── orchestrator/           #   entry points Python (Airflow + CLI)
 │       ├── src/                    #   extraction/, ingestion/, transformation/
 │       ├── dags/                   #   módulos Airflow finos
 │       ├── seeds/                  #   dados de entrada (CSV/JSON) do demo
@@ -95,9 +96,11 @@ data-platform/
 | Quero… | Onde ir |
 |--------|---------|
 | Alterar schedule ou tasks de um DAG | `apps/<app>/config/dags/*.yml` |
+| Alterar mapeamento task → script Python | `apps/<app>/config/orchestration/*.yml` |
+| Alterar entry point que o Airflow executa | `apps/<app>/orchestrator/` |
 | Alterar regra de DQ ou domínio | `apps/<app>/config/<processo>/config_<processo>.yml` |
 | Alterar lógica de pipeline | `apps/<app>/src/<processo>/` |
-| Rodar um processo localmente | `apps/<app>/src/<processo>/scripts/` |
+| Rodar workflow localmente | `python scripts/run_demo_pipeline.py` ou `orchestrator/workflows/` |
 | Alterar dados de entrada do demo | `apps/<app>/seeds/` |
 | Alterar lake root ou ambiente | `config/platform/local.yml` + `.env` |
 | Adicionar utilitário compartilhado | `src/dataplatform/` |
@@ -156,7 +159,8 @@ Ver [.env.example](.env.example) para a lista completa.
 | Platform | `config/platform/{env}.yml` | Lake, secrets, logging |
 | App | `apps/<id>/config/app.yml` | App id, lake prefix |
 | Processo | `apps/<id>/config/<processo>/config_<processo>.yml` | Domínios, layers, DQ, KPIs |
-| DAG | `apps/<id>/config/dags/*.yml` | Schedule, tasks, pools |
+| Orchestration | `apps/<id>/config/orchestration/*.yml` | Registro task → orchestrator → domain module |
+| DAG | `apps/<id>/config/dags/*.yml` | Schedule, tasks (`orchestrator:` entry points) |
 
 ---
 

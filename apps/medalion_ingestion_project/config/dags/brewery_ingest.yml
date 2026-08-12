@@ -10,7 +10,8 @@ product: brewery_etl
 pool: brewery_pool
 retries: 2
 retry_delay_minutes: 5
+orchestration: orchestration/brewery_ingest.yml
 
 tasks:
   - task_id: ingest_landing_bronze_silver
-    callable: medalion_ingestion_project.ingestion.brewery.pipeline:run_ingest_pipeline
+    orchestrator: orchestrator.brewery.ingestion:run

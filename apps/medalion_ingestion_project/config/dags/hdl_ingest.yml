@@ -5,13 +5,14 @@ tags: [hdl, medallion, orders, ingestion]
 owner: data-platform
 process: ingestion
 product: hdl_ingest
+orchestration: orchestration/hdl_ingest.yml
 
 tasks:
   - task_id: landing
-    callable: medalion_ingestion_project.ingestion.orders.pipeline:run_landing
+    orchestrator: orchestrator.orders.landing:run
   - task_id: bronze
-    callable: medalion_ingestion_project.ingestion.orders.pipeline:run_bronze
+    orchestrator: orchestrator.orders.bronze:run
     upstream: [landing]
   - task_id: silver
-    callable: medalion_ingestion_project.ingestion.orders.pipeline:run_silver
+    orchestrator: orchestrator.orders.silver:run
     upstream: [bronze]

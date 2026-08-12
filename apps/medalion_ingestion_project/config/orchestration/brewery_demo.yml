@@ -1,0 +1,8 @@
+workflow_id: brewery_demo
+description: Local end-to-end brewery chain (ingest → DQ → gold)
+orchestrator: orchestrator.workflows.brewery_demo:run
+
+tasks:
+  full_pipeline:
+    orchestrator: orchestrator.workflows.brewery_demo:run
+    domain_module: medalion_ingestion_project.transformation.brewery.pipeline:run_full_pipeline

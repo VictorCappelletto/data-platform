@@ -7,59 +7,62 @@ App demo de ingestão medallion: **orders** (HDL → KPI → export) e **brewery
 ```text
 medalion_ingestion_project/
 ├── config/
-│   ├── app.yml                      # identidade do app (id, lake prefix)
-│   ├── constants.yml                # KPI, brewery DQ, pools
-│   ├── extraction/
-│   │   └── config_extraction.yml    # API/fixture brewery
-│   ├── ingestion/
-│   │   └── config_ingestion.yml     # orders + brewery medallion ingest
-│   ├── transformation/
-│   │   └── config_transformation.yml # KPI, export, brewery DQ/gold
-│   └── dags/                        # definição YAML de cada DAG Airflow
+│   ├── app.yml
+│   ├── constants.yml
+│   ├── extraction/config_extraction.yml
+│   ├── ingestion/config_ingestion.yml
+│   ├── transformation/config_transformation.yml
+│   ├── orchestration/              # registro task → orchestrator → domain
+│   └── dags/                       # workflow Airflow (schedule, deps)
+├── orchestrator/                   # entry points Python (como GROW orchestrator/)
+│   ├── orders/                     # landing, bronze, silver
+│   ├── brewery/                    # ingestion, dq_gold
+│   ├── analytics/                  # kpi_metrics, analytics_export
+│   └── workflows/                  # demos locais (orders_demo, brewery_demo)
 ├── src/medalion_ingestion_project/
-│   ├── extraction/                  # extração de fontes externas
-│   │   ├── brewery.py
-│   │   └── scripts/run_brewery.py
-│   ├── ingestion/                   # landing → bronze → silver
-│   │   ├── orders/
-│   │   ├── brewery/
-│   │   └── scripts/run_orders.py, run_brewery.py
-│   └── transformation/              # KPIs, export, DQ → gold
-│       ├── kpi.py, export.py
-│       ├── brewery/
-│       └── scripts/run_kpi.py, run_export.py, run_brewery.py
-├── dags/                            # wrappers Airflow
-└── seeds/                           # dados de entrada do demo
+│   ├── extraction/
+│   ├── ingestion/
+│   └── transformation/
+├── dags/                           # wrappers Airflow finos
+└── seeds/
+```
+
+## Camadas (padrão GROW)
+
+| Camada | Pasta | Função |
+|--------|-------|--------|
+| **Workflow** | `config/dags/` | Grafo Airflow — schedule, dependências, pools |
+| **Orchestration** | `config/orchestration/` + `orchestrator/` | Tabela de mapeamento + scripts que o Airflow executa |
+| **Domain** | `src/<processo>/` | Lógica de negócio (extraction, ingestion, transformation) |
+
+Exemplo de registro (`config/orchestration/hdl_ingest.yml`):
+
+```yaml
+tasks:
+  landing:
+    orchestrator: orchestrator.orders.landing:run
+    domain_module: medalion_ingestion_project.ingestion.orders.pipeline:run_landing
 ```
 
 ## Processos
 
 | Processo | Domínio | O que faz |
 |----------|---------|-----------|
-| **extraction** | brewery | API Open Brewery ou fixture JSON |
-| **ingestion** | orders | seed CSV → landing → bronze → silver |
-| **ingestion** | brewery | extract → landing → bronze → silver (particionado) |
-| **transformation** | kpi | silver orders → gold KPIs |
-| **transformation** | analytics_export | gold KPIs → export + DQ |
-| **transformation** | brewery | DQ checks → gold |
-
-Config por processo: `config/<processo>/config_<processo>.yml`
-
-## Seeds
-
-| Arquivo | Processo | Rows |
-|---------|----------|------|
-| `seeds/orders_raw.csv` | ingestion/orders | 6 pedidos → 5 `is_current` em silver |
-| `seeds/breweries_sample.json` | extraction/brewery | 4 registros → 3 após dedup |
+| extraction | brewery | API Open Brewery ou fixture JSON |
+| ingestion | orders | seed CSV → landing → bronze → silver |
+| ingestion | brewery | extract → landing → bronze → silver |
+| transformation | kpi | silver orders → gold KPIs |
+| transformation | analytics_export | gold KPIs → export + DQ |
+| transformation | brewery | DQ checks → gold |
 
 ## Rodar localmente
 
 ```bash
-# Por processo (dentro do app)
-python apps/medalion_ingestion_project/src/medalion_ingestion_project/ingestion/scripts/run_orders.py
-python apps/medalion_ingestion_project/src/medalion_ingestion_project/transformation/scripts/run_kpi.py
+# Workflow completo (repo root)
+python scripts/run_demo_pipeline.py
+python scripts/run_brewery_demo.py
 
-# Cadeia completa (repo root)
-python scripts/run_demo_pipeline.py      # orders
-python scripts/run_brewery_demo.py       # brewery
+# Task individual (orchestrator)
+python apps/medalion_ingestion_project/orchestrator/orders/landing.py
+python apps/medalion_ingestion_project/orchestrator/analytics/kpi_metrics.py
 ```

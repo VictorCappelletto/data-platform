@@ -1,0 +1,10 @@
+workflow_id: brewery_ingest
+dag_config: dags/brewery_ingest.yml
+description: Brewery medallion ingestion (landing → bronze → silver)
+domain: brewery
+process: ingestion
+
+tasks:
+  ingest_landing_bronze_silver:
+    orchestrator: orchestrator.brewery.ingestion:run
+    domain_module: medalion_ingestion_project.ingestion.brewery.pipeline:run_ingest_pipeline

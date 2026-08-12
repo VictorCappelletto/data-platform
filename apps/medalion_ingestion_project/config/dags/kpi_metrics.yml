@@ -5,7 +5,8 @@ tags: [kpi, gold, transformation]
 owner: data-platform
 process: transformation
 product: kpi_metrics
+orchestration: orchestration/kpi_metrics.yml
 
 tasks:
   - task_id: compute_kpis
-    callable: medalion_ingestion_project.transformation.kpi:run_kpi_pipeline
+    orchestrator: orchestrator.analytics.kpi_metrics:run

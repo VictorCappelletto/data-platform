@@ -42,6 +42,15 @@ def test_process_config_from_yaml():
     assert product["seed_path"] == "seeds/orders_raw.csv"
 
 
+def test_orchestration_registry():
+    loader = ConfigLoader(app=APP)
+    registry = loader.orchestration("hdl_ingest")
+    assert registry["workflow_id"] == "hdl_ingest"
+    assert registry["tasks"]["landing"]["orchestrator"] == "orchestrator.orders.landing:run"
+    dag = loader.dag("hdl_ingest")
+    assert dag.tasks[0].entry_point == "orchestrator.orders.landing:run"
+
+
 def test_get_secret_from_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DEMO_DB_PASSWORD", "s3cret")
     assert get_secret("DEMO_DB_PASSWORD") == "s3cret"

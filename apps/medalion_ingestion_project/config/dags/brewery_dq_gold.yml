@@ -10,7 +10,8 @@ product: brewery_etl
 pool: brewery_pool
 retries: 2
 retry_delay_minutes: 5
+orchestration: orchestration/brewery_dq_gold.yml
 
 tasks:
   - task_id: dq_and_gold
-    callable: medalion_ingestion_project.transformation.brewery.pipeline:run_dq_gold
+    orchestrator: orchestrator.brewery.dq_gold:run

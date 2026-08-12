@@ -1,0 +1,16 @@
+workflow_id: hdl_ingest
+dag_config: dags/hdl_ingest.yml
+description: Orders medallion ingestion (landing → bronze → silver)
+domain: orders
+process: ingestion
+
+tasks:
+  landing:
+    orchestrator: orchestrator.orders.landing:run
+    domain_module: medalion_ingestion_project.ingestion.orders.pipeline:run_landing
+  bronze:
+    orchestrator: orchestrator.orders.bronze:run
+    domain_module: medalion_ingestion_project.ingestion.orders.pipeline:run_bronze
+  silver:
+    orchestrator: orchestrator.orders.silver:run
+    domain_module: medalion_ingestion_project.ingestion.orders.pipeline:run_silver

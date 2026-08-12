@@ -1,0 +1,14 @@
+workflow_id: orders_demo
+description: Local end-to-end orders chain (ingest → KPI → export)
+orchestrator: orchestrator.workflows.orders_demo:run
+
+tasks:
+  orders_pipeline:
+    orchestrator: orchestrator.workflows.orders_demo:run
+    domain_module: medalion_ingestion_project.ingestion.orders.pipeline:run_pipeline
+  kpi_metrics:
+    orchestrator: orchestrator.analytics.kpi_metrics:run
+    domain_module: medalion_ingestion_project.transformation.kpi:run_kpi_pipeline
+  analytics_export:
+    orchestrator: orchestrator.analytics.analytics_export:run
+    domain_module: medalion_ingestion_project.transformation.export:run_export
