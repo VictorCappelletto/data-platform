@@ -7,19 +7,17 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
-    PYTHONPATH: /opt/airflow/dags:/opt/airflow/src:/opt/airflow/apps/medalion_ingestion_project/src:/opt/airflow/apps/medalion_ingestion_project
+    PYTHONPATH: /opt/airflow:/opt/airflow/apps/medalion_ingestion_project
     DATA_PLATFORM_ROOT: /opt/airflow
     DATA_PLATFORM_APP: medalion_ingestion_project
     LAKE_ROOT: /opt/airflow/data/lake
     PLATFORM_ENV: local
   volumes:
-    - ./dags:/opt/airflow/dags
-    - ./apps/medalion_ingestion_project/dags:/opt/airflow/dags/medalion_ingestion_project
-    - ./src:/opt/airflow/src
+    - ./apps/medalion_ingestion_project/workflows:/opt/airflow/dags/medalion_ingestion_project
+    - ./dataplatform:/opt/airflow/dataplatform
     - ./config:/opt/airflow/config
     - ./apps/medalion_ingestion_project:/opt/airflow/apps/medalion_ingestion_project
     - ./data:/opt/airflow/data
-    - ./scripts:/opt/airflow/scripts
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     postgres:

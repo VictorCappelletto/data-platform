@@ -20,13 +20,13 @@ Inspirado em padrões de empresas como GROW e frontline-force: config centraliza
 
 ## Comece por aqui
 
-```
-1. Leia este README          → visão geral e navegação
-2. apps/<app>/README.md      → detalhes do app ativo
-3. docs/architecture.md        → decisões de design
-4. docs/lineage.md             → fluxo dos dados (orders + brewery)
-5. .env.example                → variáveis de ambiente
-```
+| # | Documento | Conteúdo |
+|---|-----------|----------|
+| 1 | Este README | Visão geral e navegação do repositório |
+| 2 | [apps/medalion_ingestion_project/README.md](apps/medalion_ingestion_project/README.md) | Estrutura e processos do app demo |
+| 3 | [docs/architecture.md](docs/architecture.md) | Design, camadas de config, comparação com GROW/frontline |
+| 4 | [docs/lineage.md](docs/lineage.md) | Lineage dos dados (orders + brewery) |
+| 5 | [.env.example](.env.example) | Variáveis de ambiente |
 
 ### Rodar em 2 minutos (sem Docker)
 
@@ -41,9 +41,9 @@ set PLATFORM_ENV=local
 # export DATA_PLATFORM_APP=medalion_ingestion_project
 # export PLATFORM_ENV=local
 
-python scripts/run_demo_pipeline.py    # orders: landing → gold → export
-python scripts/run_brewery_demo.py       # brewery: landing → gold + DQ
-python scripts/inspect_lake.py           # validar paths e row counts
+python apps/medalion_ingestion_project/workflows/runs/orders_demo.py   # orders: landing → gold → export
+python apps/medalion_ingestion_project/workflows/runs/brewery_demo.py  # brewery: landing → gold + DQ
+python apps/medalion_ingestion_project/orchestrator/quality/inspect_lake.py                 # validar paths e row counts
 pytest -q
 ```
 
@@ -68,26 +68,27 @@ data-platform/
 │   ├── constants.yml               #   layers medallion (landing, bronze, silver, gold)
 │   └── env/                        #   templates .env por ambiente
 │
-├── src/dataplatform/               # SDK COMPARTILHADO (sem lógica de negócio)
-│   ├── config/                     #   ConfigLoader, AppSettings
-│   ├── dbutils/                    #   LayerPaths, LakeIO, Spark helper
-│   ├── dq/                         #   checks + runner
-│   ├── secrets/                    #   get_secret (env | AWS)
-│   └── products/base.py            #   ProductBase para pipelines
+├── dataplatform/                   # SDK compartilhado (flat)
+│   ├── config.py                   #   YAML loader + settings
+│   ├── lake.py                     #   LayerPaths, LakeIO, Spark
+│   ├── data_quality.py             #   checks + runner
+│   ├── utils.py                    #   logging, dates, retry, secrets
+│   └── airflow.py                  #   factory — monta DAGs a partir de YAML
 │
 ├── apps/                           # APPS (cada um autocontido)
 │   └── medalion_ingestion_project/
-│       ├── config/                 #   app.yml, dags/, orchestration/, <processo>/
-│       ├── orchestrator/           #   entry points Python (Airflow + CLI)
-│       ├── src/                    #   extraction/, ingestion/, transformation/
-│       ├── dags/                   #   módulos Airflow finos
+│       ├── config/                 #   app.yml, workflows/, orchestration/, <processo>/
+│       ├── orchestrator/           #   entry points Airflow (orders, brewery, analytics)
+│       ├── workflows/              #   módulos Airflow + runs/ (demos locais)
+│       ├── extraction/             #   base.py + brewery.py
+│       ├── ingestion/              #   base.py + brewery.py + orders.py (flat)
+│       ├── transformation/         #   base.py + brewery.py, kpi.py, export.py
 │       ├── seeds/                  #   dados de entrada (CSV/JSON) do demo
+│       ├── tests/                  #   testes do app + SDK (data quality, platform)
 │       └── README.md               #   doc específica do app
-│
-├── dags/factory.py                 # factory Airflow (lê YAML do app)
-├── scripts/                        # utilitários CLI (demo, inspect, validate)
-├── tests/                          # testes do SDK + apps
-├── docs/                           # architecture, lineage
+├── docs/                           # documentação da plataforma
+│   ├── architecture.md             #   design, config loader, orchestration
+│   └── lineage.md                  #   fluxo de dados orders + brewery
 └── docker-compose.yml              # stack local (Airflow + Postgres + MinIO)
 ```
 
@@ -95,15 +96,15 @@ data-platform/
 
 | Quero… | Onde ir |
 |--------|---------|
-| Alterar schedule ou tasks de um DAG | `apps/<app>/config/dags/*.yml` |
+| Alterar schedule ou tasks de um workflow | `apps/<app>/config/workflows/*.yml` |
 | Alterar mapeamento task → script Python | `apps/<app>/config/orchestration/*.yml` |
 | Alterar entry point que o Airflow executa | `apps/<app>/orchestrator/` |
 | Alterar regra de DQ ou domínio | `apps/<app>/config/<processo>/config_<processo>.yml` |
-| Alterar lógica de pipeline | `apps/<app>/src/<processo>/` |
-| Rodar workflow localmente | `python scripts/run_demo_pipeline.py` ou `orchestrator/workflows/` |
+| Alterar lógica de pipeline | `apps/<app>/<processo>/` (ex: `ingestion/orders.py`) |
+| Rodar workflow localmente | `python apps/<app>/workflows/runs/*_demo.py` |
 | Alterar dados de entrada do demo | `apps/<app>/seeds/` |
 | Alterar lake root ou ambiente | `config/platform/local.yml` + `.env` |
-| Adicionar utilitário compartilhado | `src/dataplatform/` |
+| Adicionar utilitário compartilhado | `dataplatform/` |
 | Criar um novo app | Copiar `apps/medalion_ingestion_project/` → `apps/<novo>/` |
 
 ---
@@ -135,7 +136,7 @@ data/lake/local/medalion_ingestion_project/
 └── gold/
 ```
 
-Detalhes: [apps/medalion_ingestion_project/README.md](apps/medalion_ingestion_project/README.md) · [docs/lineage.md](docs/lineage.md)
+Detalhes: [app README](apps/medalion_ingestion_project/README.md) · [lineage](docs/lineage.md) · [architecture](docs/architecture.md)
 
 ---
 
@@ -160,7 +161,7 @@ Ver [.env.example](.env.example) para a lista completa.
 | App | `apps/<id>/config/app.yml` | App id, lake prefix |
 | Processo | `apps/<id>/config/<processo>/config_<processo>.yml` | Domínios, layers, DQ, KPIs |
 | Orchestration | `apps/<id>/config/orchestration/*.yml` | Registro task → orchestrator → domain module |
-| DAG | `apps/<id>/config/dags/*.yml` | Schedule, tasks (`orchestrator:` entry points) |
+| Workflow | `apps/<id>/config/workflows/*.yml` | Schedule, tasks (`orchestrator:` entry points) |
 
 ---
 
@@ -172,16 +173,15 @@ python -m pip install -e ".[dev]"
 
 # Qualidade
 pytest -q
-ruff check src dags scripts tests apps
-python scripts/validate_dags.py
+ruff check dataplatform apps
 
 # Demos
-python scripts/run_demo_pipeline.py
-python scripts/run_brewery_demo.py
-python scripts/inspect_lake.py
+python apps/medalion_ingestion_project/workflows/runs/orders_demo.py
+python apps/medalion_ingestion_project/workflows/runs/brewery_demo.py
+python apps/medalion_ingestion_project/orchestrator/quality/inspect_lake.py
 ```
 
-CI (GitHub Actions): lint → test → validate DAG imports — ver [.github/workflows/ci.yml](.github/workflows/ci.yml).
+CI (GitHub Actions): lint → test (inclui validação de imports dos workflows) — ver [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ---
 
@@ -189,10 +189,10 @@ CI (GitHub Actions): lint → test → validate DAG imports — ver [.github/wor
 
 1. Copie `apps/medalion_ingestion_project/` → `apps/<novo_app_id>/`
 2. Edite `config/app.yml` (id, lake prefix, domínios)
-3. Adapte pipelines em `src/<package>/`
+3. Adapte pipelines em `extraction/`, `ingestion/`, `transformation/`
 4. Coloque seeds em `apps/<novo_app_id>/seeds/`
 5. Configure `DATA_PLATFORM_APP=<novo_app_id>` no `.env` e `docker-compose.yml`
-6. Monte `apps/<novo_app_id>/dags/` no Airflow
+6. Monte `apps/<novo_app_id>/workflows/` no Airflow
 
 Guia completo: [docs/architecture.md](docs/architecture.md)
 
@@ -200,11 +200,18 @@ Guia completo: [docs/architecture.md](docs/architecture.md)
 
 ## Documentação
 
-| Doc | Conteúdo |
-|-----|----------|
-| [docs/architecture.md](docs/architecture.md) | Design, config loader, comparação com frontline |
-| [docs/lineage.md](docs/lineage.md) | Lineage orders + brewery |
-| [apps/medalion_ingestion_project/README.md](apps/medalion_ingestion_project/README.md) | Referência rápida do app demo |
+Documentação canônica da plataforma em [`docs/`](docs/):
+
+| Documento | Quando ler |
+|-----------|------------|
+| [docs/architecture.md](docs/architecture.md) | Entender design, camadas (workflow / orchestrator / domain), config loader e como adicionar apps |
+| [docs/lineage.md](docs/lineage.md) | Ver de onde vêm e para onde vão os dados (orders e brewery) |
+
+Documentação por app:
+
+| Documento | Quando ler |
+|-----------|------------|
+| [apps/medalion_ingestion_project/README.md](apps/medalion_ingestion_project/README.md) | Estrutura do app demo, processos e como rodar tasks individuais |
 
 ---
 

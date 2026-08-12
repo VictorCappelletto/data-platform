@@ -1,13 +1,13 @@
-"""Orchestrator — analytics export task (analytics_export DAG)."""
+"""Orchestrator — analytics export task (analytics_export workflow)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.transformation.export import run_export as _run_export
-from orchestrator.base import log_result, run_task
+from transformation.export import run_export as _run_export
+from workflows.orchestrator_base import log_result, run_task
 
-TASK_ID = "export_with_dq"
+TASK_ID = "export_kpis"
 
 
 def run(**kwargs: Any) -> list[dict[str, Any]]:
@@ -16,7 +16,7 @@ def run(**kwargs: Any) -> list[dict[str, Any]]:
 
 def main() -> None:
     rows = run()
-    log_result(TASK_ID, {"export_rows": len(rows)})
+    log_result(TASK_ID, {"rows": len(rows)})
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
-"""Orchestrator — brewery DQ + gold task (brewery_dq_gold DAG)."""
+"""Orchestrator — brewery DQ + gold task (brewery_dq_gold workflow)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.transformation.brewery.pipeline import run_dq_gold as _run_dq_gold
-from orchestrator.base import log_result, run_task
+from transformation.brewery import run_dq_gold as _run_dq_gold
+from workflows.orchestrator_base import log_result, run_task
 
 TASK_ID = "dq_and_gold"
 

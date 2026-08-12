@@ -1,11 +1,11 @@
-"""Orchestrator — orders landing task (hdl_ingest DAG)."""
+"""Orchestrator — orders landing task (hdl_ingest workflow)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.ingestion.orders.pipeline import run_landing as _run_landing
-from orchestrator.base import log_result, run_task
+from ingestion.orders import run_landing as _run_landing
+from workflows.orchestrator_base import log_result, run_task
 
 TASK_ID = "landing"
 

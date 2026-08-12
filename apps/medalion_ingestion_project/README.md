@@ -7,23 +7,29 @@ App demo de ingestão medallion: **orders** (HDL → KPI → export) e **brewery
 ```text
 medalion_ingestion_project/
 ├── config/
-│   ├── app.yml
-│   ├── constants.yml
-│   ├── extraction/config_extraction.yml
-│   ├── ingestion/config_ingestion.yml
-│   ├── transformation/config_transformation.yml
+│   ├── workflows/                  # jobs Airflow (schedule, deps)
 │   ├── orchestration/              # registro task → orchestrator → domain
-│   └── dags/                       # workflow Airflow (schedule, deps)
-├── orchestrator/                   # entry points Python (como GROW orchestrator/)
+│   └── extraction|ingestion|transformation/
+├── quality/
+│   └── inspect_lake.py             # inspeção do lake (layout, row counts)
+├── orchestrator/
 │   ├── orders/                     # landing, bronze, silver
 │   ├── brewery/                    # ingestion, dq_gold
 │   ├── analytics/                  # kpi_metrics, analytics_export
-│   └── workflows/                  # demos locais (orders_demo, brewery_demo)
-├── src/medalion_ingestion_project/
-│   ├── extraction/
-│   ├── ingestion/
-│   └── transformation/
-├── dags/                           # wrappers Airflow finos
+│   └── quality/                    # inspect_lake
+├── workflows/                      # módulos Airflow + runs/ (demos locais)
+├── extraction/
+│   ├── base.py                     # ExtractionBase — HTTP, fixtures, paginação
+│   └── brewery.py
+├── ingestion/
+│   ├── base.py                     # IngestionBase + helpers de partição
+│   ├── brewery.py                  # pipeline brewery (flat, sem subpastas)
+│   └── orders.py                   # pipeline orders (flat, sem subpastas)
+├── transformation/
+│   ├── base.py
+│   ├── brewery.py, kpi.py, export.py
+├── runtime.py, base.py
+├── tests/                          # testes do app + SDK
 └── seeds/
 ```
 
@@ -31,9 +37,9 @@ medalion_ingestion_project/
 
 | Camada | Pasta | Função |
 |--------|-------|--------|
-| **Workflow** | `config/dags/` | Grafo Airflow — schedule, dependências, pools |
-| **Orchestration** | `config/orchestration/` + `orchestrator/` | Tabela de mapeamento + scripts que o Airflow executa |
-| **Domain** | `src/<processo>/` | Lógica de negócio (extraction, ingestion, transformation) |
+| **Workflow (job)** | `config/workflows/` + `workflows/*_dag.py` | Grafo Airflow |
+| **Orchestration** | `config/orchestration/` + `orchestrator/` | Entry points que o Airflow executa |
+| **Domain** | `extraction/`, `ingestion/`, `transformation/` | Lógica de negócio (arquivos flat) |
 
 Exemplo de registro (`config/orchestration/hdl_ingest.yml`):
 
@@ -41,28 +47,17 @@ Exemplo de registro (`config/orchestration/hdl_ingest.yml`):
 tasks:
   landing:
     orchestrator: orchestrator.orders.landing:run
-    domain_module: medalion_ingestion_project.ingestion.orders.pipeline:run_landing
+    domain_module: ingestion.orders:run_landing
 ```
-
-## Processos
-
-| Processo | Domínio | O que faz |
-|----------|---------|-----------|
-| extraction | brewery | API Open Brewery ou fixture JSON |
-| ingestion | orders | seed CSV → landing → bronze → silver |
-| ingestion | brewery | extract → landing → bronze → silver |
-| transformation | kpi | silver orders → gold KPIs |
-| transformation | analytics_export | gold KPIs → export + DQ |
-| transformation | brewery | DQ checks → gold |
 
 ## Rodar localmente
 
 ```bash
-# Workflow completo (repo root)
-python scripts/run_demo_pipeline.py
-python scripts/run_brewery_demo.py
+python apps/medalion_ingestion_project/workflows/runs/orders_demo.py
+python apps/medalion_ingestion_project/workflows/runs/brewery_demo.py
+python apps/medalion_ingestion_project/orchestrator/quality/inspect_lake.py
 
-# Task individual (orchestrator)
-python apps/medalion_ingestion_project/orchestrator/orders/landing.py
-python apps/medalion_ingestion_project/orchestrator/analytics/kpi_metrics.py
+# Task individual
+python -m orchestrator.orders.landing
+python -m orchestrator.analytics.kpi_metrics
 ```

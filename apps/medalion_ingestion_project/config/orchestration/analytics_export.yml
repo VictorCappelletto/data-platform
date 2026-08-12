@@ -1,5 +1,5 @@
 workflow_id: analytics_export
-dag_config: dags/analytics_export.yml
+dag_config: workflows/analytics_export.yml
 description: Gold KPIs → analytics export with DQ gate
 domain: analytics
 process: transformation
@@ -7,4 +7,4 @@ process: transformation
 tasks:
   export_with_dq:
     orchestrator: orchestrator.analytics.analytics_export:run
-    domain_module: medalion_ingestion_project.transformation.export:run_export
+    domain_module: transformation.export:run_export

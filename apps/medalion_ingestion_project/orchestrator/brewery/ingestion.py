@@ -1,13 +1,11 @@
-"""Orchestrator — brewery ingest task (brewery_ingest DAG)."""
+"""Orchestrator — brewery ingest task (brewery_ingest workflow)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from medalion_ingestion_project.ingestion.brewery.pipeline import (
-    run_ingest_pipeline as _run_ingest_pipeline,
-)
-from orchestrator.base import log_result, run_task
+from ingestion.brewery import run_ingest_pipeline as _run_ingest_pipeline
+from workflows.orchestrator_base import log_result, run_task
 
 TASK_ID = "ingest_landing_bronze_silver"
 
