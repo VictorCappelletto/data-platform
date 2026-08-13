@@ -1,0 +1,10 @@
+workflow_id: kpi_metrics
+dag_config: workflows/kpi_metrics.yml
+description: Silver orders → gold KPI metrics
+domain: kpi
+process: transformation
+
+tasks:
+  compute_kpis:
+    orchestrator: orchestrator.analytics.kpi_metrics:run
+    domain_module: transformation.kpi:run_kpi_pipeline

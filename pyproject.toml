@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "data-platform"
 version = "0.2.0"
-description = "Portfolio data platform — YAML configs, unified src, medallion lake"
+description = "Portfolio data platform — YAML configs, medallion lake, shared dataplatform SDK"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -21,11 +21,12 @@ dev = ["pytest>=8.0", "ruff>=0.6"]
 spark = ["pyspark>=3.5", "delta-spark>=3.2"]
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
+include = ["dataplatform*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src", "apps/medalion_ingestion_project/src"]
+testpaths = ["apps/medalion_ingestion_project/tests"]
+pythonpath = [".", "apps/medalion_ingestion_project"]
 
 [tool.ruff]
 line-length = 100
@@ -35,4 +36,4 @@ target-version = "py310"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["dataplatform", "medalion_ingestion_project"]
+known-first-party = ["dataplatform", "ingestion", "extraction", "transformation", "quality", "workflows", "orchestrator", "base", "runtime", "utils"]

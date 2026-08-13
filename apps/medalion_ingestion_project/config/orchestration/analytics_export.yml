@@ -1,0 +1,10 @@
+workflow_id: analytics_export
+dag_config: workflows/analytics_export.yml
+description: Gold KPIs → analytics export with DQ gate
+domain: analytics
+process: transformation
+
+tasks:
+  export_with_dq:
+    orchestrator: orchestrator.analytics.analytics_export:run
+    domain_module: transformation.export:run_export

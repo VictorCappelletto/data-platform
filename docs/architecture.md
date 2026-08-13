@@ -3,19 +3,21 @@
 ## Goals
 
 Portfolio-ready data platform with:
-- **Shared SDK** in `src/dataplatform/`
+- **Shared SDK** in `dataplatform/`
 - **Isolated apps** in `apps/` (pattern from frontline-force `notebooks/<app>/`)
 - **Single config convention**: global `config/`, per-app `apps/<id>/config/`
-- Thin Airflow orchestration via `dags/factory.py`
+- Thin Airflow orchestration via `dataplatform/airflow.py`
 
 ## Comparison with frontline-force-data-platform
 
-| Frontline Force | This repo |
-|-----------------|-----------|
-| `notebooks/frontline-force-dm-app/` | `apps/medalion_ingestion_project/` |
-| `pipelines/.../configs/databricks/` | `apps/.../config/dags/` |
-| Domain config inside notebooks (`kpi/config/`) | `apps/.../config/<processo>/config_<processo>.yml` |
-| Databricks job JSON | Airflow YAML + thin Python DAGs |
+| Frontline Force | This repo | GROW |
+|-----------------|-----------|------|
+| `notebooks/frontline-force-dm-app/` | `apps/medalion_ingestion_project/` | `projects/grow/` |
+| `pipelines/.../configs/databricks/` | `apps/.../config/workflows/` | `workflows/workflow_jsons/` |
+| Domain config inside notebooks | `apps/.../config/<processo>/` | `configs/<processo>/` |
+| Databricks job JSON | Airflow YAML + thin Python DAGs | `workflows/*.json` |
+| — | `apps/.../orchestrator/` | `orchestrator/*.ipynb` |
+| — | `apps/.../config/orchestration/` | task registry in workflow JSON |
 
 ## Config layers
 
@@ -25,7 +27,8 @@ Portfolio-ready data platform with:
 | Global constants | `config/constants.yml` | Medallion layer names |
 | App | `apps/<id>/config/app.yml` | App id, lake prefix |
 | Process | `apps/<id>/config/<processo>/config_<processo>.yml` | Domínios por etapa (extraction, ingestion, transformation) |
-| DAG | `apps/<id>/config/dags/*.yml` | Schedule, tasks, pools |
+| Orchestration | `apps/<id>/config/orchestration/*.yml` | Tabela task → orchestrator → domain module |
+| Workflow | `apps/<id>/config/workflows/*.yml` | Schedule, tasks (`orchestrator:` entry points) |
 | App constants | `apps/<id>/config/constants.yml` | KPI, brewery, pools |
 
 `ConfigLoader(app=...)` merges global + app config. Env vars override YAML (`LAKE_ROOT`, `DATA_PLATFORM_APP`).
@@ -35,11 +38,46 @@ Portfolio-ready data platform with:
 | Module | Responsibility |
 |--------|----------------|
 | `dataplatform.config` | YAML loader, `PlatformSettings`, `AppSettings` |
-| `dataplatform.dbutils` | `LayerPaths`, `LakeIO`, Spark |
-| `dataplatform.dq` | Checks + gate |
-| `apps/<id>/src/<package>/` | Pipelines por processo (`extraction/`, `ingestion/`, `transformation/`) |
+| `dataplatform.lake` | `LayerPaths`, `LakeIO`, Spark |
+| `dataplatform.data_quality` | Checks + gate |
+| `dataplatform.utils` | Logging, dates, retry, secrets |
+| `dataplatform.airflow` | `build_dag_from_yaml` — monta DAGs a partir de YAML |
+| `apps/<id>/<processo>/base.py` | Métodos compartilhados da etapa (read/write, DQ, run template) |
+| `apps/<id>/<processo>/*.py` | Implementações concretas por domínio (ex: `ingestion/orders.py`) |
+| `apps/<id>/orchestrator/` | Entry points finos — Airflow/CLI chama aqui |
 
-Cada processo possui scripts locais em `src/<processo>/scripts/` para rodar sem Airflow.
+### Stage base classes (padrão GROW `base.py`)
+
+| Etapa | Base class | Hooks / métodos compartilhados |
+|-------|------------|--------------------------------|
+| extraction | `ExtractionBase` | `http_session`, `read_json_fixture`, `paginated_api_get`, `run()` |
+| ingestion | `IngestionBase` | `write_landing_csv`, `run_bronze/silver`, `run_pipeline()` |
+| ingestion (particionado) | `PartitionedIngestionBase` | `write_partitions`, `run_ingest_pipeline()` |
+| transformation | `TransformationBase` | `read_source_rows`, `write_target_rows`, `transform()`, `run()` |
+| transformation (particionado) | `PartitionedTransformationBase` | `run_dq_checks`, `run_dq_gold()` |
+
+Implementações concretas implementam apenas os hooks: `extract()`, `to_bronze()`, `to_silver()`, `transform()`.
+
+## Orchestration (padrão GROW)
+
+Três camadas separadas, como no GROW:
+
+| Camada | GROW | Este repo |
+|--------|------|-----------|
+| Workflow (job) | `workflows/workflow_jsons/*.json` | `config/workflows/*.yml` |
+| Orchestrator (front door) | `orchestrator/*.ipynb` | `orchestrator/<domain>/*.py` |
+| Domain (lógica) | `projects/grow/<domain>/` | `extraction/`, `ingestion/`, `transformation/` (flat) |
+
+`config/orchestration/<workflow>.yml` documenta o mapeamento:
+
+```yaml
+tasks:
+  landing:
+    orchestrator: orchestrator.orders.landing:run
+    domain_module: ingestion.orders:run_landing
+```
+
+Airflow (`dataplatform.airflow`) importa apenas `orchestrator.*:run`. O orchestrator faz bootstrap e delega ao módulo de domínio.
 
 ## Active app: `medalion_ingestion_project`
 
@@ -56,9 +94,12 @@ Lake path: `{lake_root}/{env}/medalion_ingestion_project/{layer}/{domain}/{table
 
 ## Orchestration
 
-- `dags/factory.py` reads `apps/<id>/config/dags/*.yml`
-- `apps/<id>/dags/*_dag.py` call `build_dag_from_yaml(dag_id, app=...)`
-- Docker mounts app DAGs at `/opt/airflow/dags/<app_id>/`
+- `config/workflows/*.yml` — grafo do workflow (schedule, dependências, pools)
+- `config/orchestration/*.yml` — registro task → orchestrator → domain module
+- `orchestrator/` — scripts Python finos executados pelo Airflow (raiz do app)
+- `workflows/runs/` — runners locais para demos sem Airflow
+- `dataplatform.airflow` lê workflow YAML e importa `orchestrator.*:run`
+- `apps/<id>/workflows/*_dag.py` chamam `build_dag_from_yaml(dag_id, app=...)`
 
 ## Environments
 
