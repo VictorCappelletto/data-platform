@@ -5,14 +5,14 @@ import pytest
 from dataplatform.config.loader import ConfigLoader
 from dataplatform.dbutils import Layer, LayerPaths
 from dataplatform.dq.runner import DataQualityError
-from medalion_ingestion_project.brewery_etl.partition import partition_key, partition_path
-from medalion_ingestion_project.brewery_etl.pipelines import (
+from medalion_ingestion_project.ingestion.brewery.partition import partition_key, partition_path
+from medalion_ingestion_project.ingestion.brewery.pipeline import run_ingest_pipeline
+from medalion_ingestion_project.ingestion.brewery.transform import transform_breweries
+from medalion_ingestion_project.transformation.brewery.pipeline import (
     duplicate_ids,
     run_dq_gold,
     run_full_pipeline,
-    run_ingest_pipeline,
 )
-from medalion_ingestion_project.brewery_etl.transform import transform_breweries
 
 PROJECT = "medalion_ingestion_project"
 

@@ -3,8 +3,9 @@ schedule: "30 7 * * *"
 catchup: false
 max_active_runs: 1
 max_active_tasks: 1
-tags: [brewery, dq, gold]
+tags: [brewery, dq, gold, transformation]
 owner: data-platform
+process: transformation
 product: brewery_etl
 pool: brewery_pool
 retries: 2
@@ -12,4 +13,4 @@ retry_delay_minutes: 5
 
 tasks:
   - task_id: dq_and_gold
-    callable: medalion_ingestion_project.brewery_etl.pipelines:run_dq_gold
+    callable: medalion_ingestion_project.transformation.brewery.pipeline:run_dq_gold

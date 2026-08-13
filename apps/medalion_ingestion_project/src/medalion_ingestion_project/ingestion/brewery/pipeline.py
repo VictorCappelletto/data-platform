@@ -5,20 +5,19 @@ from pathlib import Path
 from typing import Any
 
 from dataplatform.dbutils.paths import Layer
-from dataplatform.dq import CheckResult, null_rate, run_checks
-from medalion_ingestion_project.base import ProjectProductBase
-from medalion_ingestion_project.brewery_etl.extract import BreweryExtractor
-from medalion_ingestion_project.brewery_etl.partition import (
+from medalion_ingestion_project.base import ProjectProcessBase
+from medalion_ingestion_project.extraction.brewery import BreweryExtractor
+from medalion_ingestion_project.ingestion.brewery.partition import (
     load_date,
     partition_key,
     partition_path,
 )
-from medalion_ingestion_project.brewery_etl.transform import transform_breweries
+from medalion_ingestion_project.ingestion.brewery.transform import transform_breweries
 
 
-class BreweryPipeline(ProjectProductBase):
+class BreweryIngestPipeline(ProjectProcessBase):
     def __init__(self, environment: str | None = None) -> None:
-        super().__init__("brewery_etl", environment)
+        super().__init__("ingestion", "brewery", environment)
         self.extractor = BreweryExtractor(environment)
 
     @property
@@ -110,45 +109,6 @@ class BreweryPipeline(ProjectProductBase):
                 by_id[key] = row
         return list(by_id.values())
 
-    def duplicate_ids(self, rows: list[dict[str, Any]], column: str = "id") -> CheckResult:
-        ids = [r.get(column) for r in rows if r.get(column)]
-        dupes = len(ids) - len(set(ids))
-        ok = dupes == 0
-        return CheckResult(
-            name=f"duplicate:{column}",
-            passed=ok,
-            message=f"duplicate_count={dupes}",
-            metrics={"rows": len(rows), "duplicates": dupes},
-        )
-
-    def check_min_volume(self, rows: list[dict[str, Any]]) -> CheckResult:
-        minimum = int(self.product_config["dq"]["min_volume"])
-        count = len(rows)
-        ok = count >= minimum
-        return CheckResult(
-            name="min_volume",
-            passed=ok,
-            message=f"count={count} min={minimum}",
-            metrics={"count": count, "minimum": minimum},
-        )
-
-    def run_dq_gold(self, *, load_dt: str | None = None) -> list[dict[str, Any]]:
-        load_dt = load_dt or load_date()
-        silver = self._read_layer_partitions(Layer.SILVER, load_dt)
-        dq_cfg = self.product_config["dq"]
-        results = [
-            null_rate(silver, col, max_rate=0.0) for col in dq_cfg["null_columns"]
-        ]
-        if dq_cfg.get("check_duplicates", True):
-            results.append(self.duplicate_ids(silver, "id"))
-        results.append(self.check_min_volume(silver))
-        run_checks(results)
-
-        gold = silver
-        self._write_partitions(gold, Layer.GOLD, load_dt)
-        self.logger.info("gold complete: %s rows after DQ", len(gold))
-        return gold
-
     def run_ingest_pipeline(
         self,
         *,
@@ -166,50 +126,30 @@ class BreweryPipeline(ProjectProductBase):
             "load_date": load_dt,
         }
 
-    def run_full_pipeline(
-        self,
-        *,
-        fixture_path: str | None = None,
-        load_dt: str | None = None,
-    ) -> dict[str, Any]:
-        stats = self.run_ingest_pipeline(fixture_path=fixture_path, load_dt=load_dt)
-        gold = self.run_dq_gold(load_dt=stats["load_date"])
-        stats["gold_rows"] = len(gold)
-        return stats
-
-
-def duplicate_ids(rows: list[dict[str, Any]], column: str = "id") -> CheckResult:
-    return BreweryPipeline().duplicate_ids(rows, column)
-
 
 def run_landing(**kwargs: Any) -> list[dict[str, Any]]:
-    return BreweryPipeline().run_landing(
+    return BreweryIngestPipeline().run_landing(
         load_dt=kwargs.get("load_dt"),
         fixture_path=kwargs.get("fixture_path"),
     )
 
 
 def run_bronze(**kwargs: Any) -> list[dict[str, Any]]:
-    return BreweryPipeline().run_bronze(
+    return BreweryIngestPipeline().run_bronze(
         load_dt=kwargs.get("load_dt"),
         landing_rows=kwargs.get("landing_rows"),
     )
 
 
 def run_silver(**kwargs: Any) -> list[dict[str, Any]]:
-    return BreweryPipeline().run_silver(
+    return BreweryIngestPipeline().run_silver(
         load_dt=kwargs.get("load_dt"),
         bronze_rows=kwargs.get("bronze_rows"),
     )
 
 
-def run_dq_gold(**kwargs: Any) -> list[dict[str, Any]]:
-    return BreweryPipeline().run_dq_gold(load_dt=kwargs.get("load_dt"))
-
-
-def run_ingest_pipeline(**_kwargs: Any) -> dict[str, Any]:
-    return BreweryPipeline().run_ingest_pipeline()
-
-
-def run_full_pipeline(**_kwargs: Any) -> dict[str, Any]:
-    return BreweryPipeline().run_full_pipeline()
+def run_ingest_pipeline(**kwargs: Any) -> dict[str, Any]:
+    return BreweryIngestPipeline().run_ingest_pipeline(
+        fixture_path=kwargs.get("fixture_path"),
+        load_dt=kwargs.get("load_dt"),
+    )

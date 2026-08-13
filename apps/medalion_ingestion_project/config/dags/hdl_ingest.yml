@@ -1,16 +1,17 @@
 dag_id: hdl_ingest
 schedule: "@daily"
 catchup: false
-tags: [hdl, medallion, orders]
+tags: [hdl, medallion, orders, ingestion]
 owner: data-platform
+process: ingestion
 product: hdl_ingest
 
 tasks:
   - task_id: landing
-    callable: medalion_ingestion_project.hdl_ingest.pipelines.ingest:run_landing
+    callable: medalion_ingestion_project.ingestion.orders.pipeline:run_landing
   - task_id: bronze
-    callable: medalion_ingestion_project.hdl_ingest.pipelines.ingest:run_bronze
+    callable: medalion_ingestion_project.ingestion.orders.pipeline:run_bronze
     upstream: [landing]
   - task_id: silver
-    callable: medalion_ingestion_project.hdl_ingest.pipelines.ingest:run_silver
+    callable: medalion_ingestion_project.ingestion.orders.pipeline:run_silver
     upstream: [bronze]

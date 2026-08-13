@@ -32,6 +32,16 @@ def test_dag_config_from_yaml():
     assert len(dag.tasks) == 3
 
 
+def test_process_config_from_yaml():
+    loader = ConfigLoader(app=APP)
+    ingestion = loader.process("ingestion", "local")
+    assert ingestion["orders"]["domain"] == "orders"
+    extraction = loader.process("extraction", "local")
+    assert extraction["brewery"]["use_fixture"] is True
+    product = loader.product("hdl_ingest", "local")
+    assert product["seed_path"] == "seeds/orders_raw.csv"
+
+
 def test_get_secret_from_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DEMO_DB_PASSWORD", "s3cret")
     assert get_secret("DEMO_DB_PASSWORD") == "s3cret"

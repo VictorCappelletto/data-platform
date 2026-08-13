@@ -1,0 +1,21 @@
+process: ingestion
+
+orders:
+  domain: orders
+  table: orders
+  seed_path: seeds/orders_raw.csv
+  layers:
+    landing:
+      format: csv
+    bronze:
+      format: json
+    silver:
+      format: json
+
+brewery:
+  domain: brewery
+  table: breweries
+  partition_keys:
+    - country
+    - state
+    - load_date

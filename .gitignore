@@ -20,7 +20,7 @@ Thumbs.db
 # Data / lake local
 data/lake/
 *.parquet
-!seeds/**
+!apps/*/seeds/**
 
 # Spark / Airflow
 spark-warehouse/

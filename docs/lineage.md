@@ -1,9 +1,11 @@
 # Data lineage
 
-## Generic demo (orders)
+Lake root (local): `data/lake/local/medalion_ingestion_project/`
+
+## Orders pipeline
 
 ```text
-seeds/orders_raw.csv
+apps/medalion_ingestion_project/seeds/orders_raw.csv
         │
         ▼
 landing/orders/orders          (raw CSV)
@@ -21,10 +23,12 @@ gold/kpi/orders_daily          (gmv_completed, active_customers, completion_rate
 gold/analytics/kpi_export      (DQ-gated consumption snapshot)
 ```
 
-## Brewery ETL (Desafio_InBev adapted)
+DAGs: `hdl_ingest` → `kpi_metrics` → `analytics_export`
+
+## Brewery pipeline
 
 ```text
-Open Brewery API  (or seeds/breweries_sample.json)
+Open Brewery API  (or apps/medalion_ingestion_project/seeds/breweries_sample.json)
         │
         ▼
 landing/brewery/breweries/country=*/state=*/load_date=*/
@@ -35,15 +39,13 @@ bronze/brewery/breweries/...   (typed / normalized)
         ▼
 silver/brewery/breweries/...   (deduped by id)
         │
-        ▼  platform_dq (nulls, duplicates, min volume)
+        ▼  DQ (nulls, duplicates, min volume)
 gold/brewery/breweries/...     (validated consumption layer)
 ```
-
-### Airflow orchestration
 
 | Step | DAG | Schedule |
 |------|-----|----------|
 | Ingest | `brewery_ingest` | 06:00 daily |
 | DQ + Gold | `brewery_dq_gold` | 07:30 daily |
 
-Both use pool `brewery_pool` (1 slot) and `max_active_runs=1`.
+Both use pool `brewery_pool` and `max_active_runs=1`.
