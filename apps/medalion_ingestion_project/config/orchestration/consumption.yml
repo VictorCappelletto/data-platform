@@ -1,0 +1,9 @@
+workflow_id: consumption
+dag_config: workflows/consumption.yml
+description: Analytics export (gold KPIs → export channel)
+process: consumption
+
+tasks:
+  analytics_export:
+    orchestrator: orchestrator.consumption:run_analytics_export
+    domain_module: consumption.analytics_export:run_export

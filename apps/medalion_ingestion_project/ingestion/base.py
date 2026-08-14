@@ -8,46 +8,18 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from base import ProjectProcessBase
 from dataplatform.lake import Layer, LayerPaths
+from dataplatform.process_base import ProjectProcessBase
 from dataplatform.utils import utc_today
-
-
-# Shared partition helpers — used by PartitionedIngestionBase and transformation/.
-def load_date(value: date | None = None) -> str:    return (value or utc_today()).isoformat()
-
-
-def partition_key(record: dict) -> tuple[str, str]:
-    country = (record.get("country") or "unknown").strip().upper() or "UNKNOWN"
-    state = (record.get("state") or record.get("state_province") or "unknown").strip().upper()
-    state = state.replace(" ", "_") or "UNKNOWN"
-    return country, state
-
-
-def partition_path(
-    layer: Layer | str,
-    *,
-    country: str,
-    state: str,
-    load_dt: str,
-    paths: LayerPaths,
-    domain: str = "brewery",
-    table: str = "breweries",
-) -> str:
-    table_base = paths.table_path(layer, domain, table)
-    suffix = f"country={country}/state={state}/load_date={load_dt}"
-    if paths.backend in {"s3", "minio"}:
-        return f"{table_base}/{suffix}"
-    return str((Path(table_base) / suffix).as_posix())
+from utils.settings import bind_medalion_settings
 
 
 class IngestionBase(ProjectProcessBase, ABC):
     """Base for table-scoped medallion ingestion."""
 
-    PROCESS = "ingestion"
-
     def __init__(self, domain_key: str, environment: str | None = None) -> None:
-        super().__init__(self.PROCESS, domain_key, environment)
+        super().__init__("ingestion", domain_key, environment)
+        bind_medalion_settings(self, environment)
 
     @property
     def domain(self) -> str:
@@ -133,6 +105,34 @@ class IngestionBase(ProjectProcessBase, ABC):
 class PartitionedIngestionBase(IngestionBase):
     """Ingestion base for country/state/load_date partitioned domains."""
 
+    @staticmethod
+    def load_date(value: date | None = None) -> str:
+        return (value or utc_today()).isoformat()
+
+    @staticmethod
+    def partition_key(record: dict) -> tuple[str, str]:
+        country = (record.get("country") or "unknown").strip().upper() or "UNKNOWN"
+        state = (record.get("state") or record.get("state_province") or "unknown").strip().upper()
+        state = state.replace(" ", "_") or "UNKNOWN"
+        return country, state
+
+    @staticmethod
+    def partition_path(
+        layer: Layer | str,
+        *,
+        country: str,
+        state: str,
+        load_dt: str,
+        paths: LayerPaths,
+        domain: str = "brewery",
+        table: str = "breweries",
+    ) -> str:
+        table_base = paths.table_path(layer, domain, table)
+        suffix = f"country={country}/state={state}/load_date={load_dt}"
+        if paths.backend in {"s3", "minio"}:
+            return f"{table_base}/{suffix}"
+        return str((Path(table_base) / suffix).as_posix())
+
     def write_partitions(
         self,
         rows: list[dict[str, Any]],
@@ -141,10 +141,10 @@ class PartitionedIngestionBase(IngestionBase):
     ) -> int:
         groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
         for row in rows:
-            groups[partition_key(row)].append(row)
+            groups[self.partition_key(row)].append(row)
         written = 0
         for (country, state), part_rows in groups.items():
-            dest = partition_path(
+            dest = self.partition_path(
                 layer,
                 country=country,
                 state=state,
@@ -174,7 +174,7 @@ class PartitionedIngestionBase(IngestionBase):
         fixture_path: str | None = None,
         landing_rows: list[dict[str, Any]] | None = None,
     ) -> list[dict[str, Any]]:
-        load_dt = load_dt or load_date()
+        load_dt = load_dt or self.load_date()
         if landing_rows is not None:
             raw = landing_rows
         else:
@@ -189,7 +189,7 @@ class PartitionedIngestionBase(IngestionBase):
         load_dt: str | None = None,
         landing_rows: list[dict[str, Any]] | None = None,
     ) -> list[dict[str, Any]]:
-        load_dt = load_dt or load_date()
+        load_dt = load_dt or self.load_date()
         if landing_rows is None:
             landing_rows = self.read_layer_partitions(Layer.LANDING, load_dt)
         bronze = self.to_bronze(landing_rows)
@@ -203,7 +203,7 @@ class PartitionedIngestionBase(IngestionBase):
         load_dt: str | None = None,
         bronze_rows: list[dict[str, Any]] | None = None,
     ) -> list[dict[str, Any]]:
-        load_dt = load_dt or load_date()
+        load_dt = load_dt or self.load_date()
         if bronze_rows is None:
             bronze_rows = self.read_layer_partitions(Layer.BRONZE, load_dt)
         silver = self.to_silver(bronze_rows)
@@ -217,7 +217,7 @@ class PartitionedIngestionBase(IngestionBase):
         fixture_path: str | None = None,
         load_dt: str | None = None,
     ) -> dict[str, Any]:
-        load_dt = load_dt or load_date()
+        load_dt = load_dt or self.load_date()
         landing = self.run_landing(load_dt=load_dt, fixture_path=fixture_path)
         bronze = self.run_bronze(load_dt=load_dt, landing_rows=landing)
         silver = self.run_silver(load_dt=load_dt, bronze_rows=bronze)

@@ -1,0 +1,16 @@
+app_id: ingestion_azure
+name: Ingestion Azure (Olist)
+lake_prefix: ingestion_azure
+
+lake:
+  zones:
+    - landing
+    - processing
+    - curated
+  adls:
+    uri_pattern: "^abfss://(?P<container>[^/@]+)@(?P<account>[^/]+)\\.dfs\\.core\\.windows\\.net/(?P<path>.+)$"
+    zone_uri: "abfss://{zone}@{account}.dfs.core.windows.net/"
+    account_url: "https://{account}.dfs.core.windows.net"
+    schemes:
+      - abfss
+      - abfs

@@ -1,0 +1,9 @@
+workflow_id: extraction
+dag_config: workflows/extraction.yml
+description: Brewery API / fixture extraction
+process: extraction
+
+tasks:
+  brewery_extract:
+    orchestrator: orchestrator.extraction:run_brewery_extract
+    domain_module: extraction.brewery:run_extract

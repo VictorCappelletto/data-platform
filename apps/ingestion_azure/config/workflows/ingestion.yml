@@ -1,0 +1,12 @@
+dag_id: ingestion
+schedule: null
+catchup: false
+tags: [olist, azure, ingestion]
+owner: data-platform
+process: ingestion
+product: olist
+orchestration: orchestration/ingestion.yml
+
+tasks:
+  - task_id: orders
+    orchestrator: orchestrator.ingestion:run_orders

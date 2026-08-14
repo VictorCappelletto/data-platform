@@ -30,3 +30,13 @@ def test_workflow_dag_modules_import() -> None:
     assert workflow_files, "expected at least one workflow module"
     for workflow_file in workflow_files:
         _load_workflow_module(workflow_file.stem, workflow_file)
+
+
+def test_orchestration_registry_loads() -> None:
+    from dataplatform.config import ConfigLoader
+
+    loader = ConfigLoader(app=APP_ID)
+    for process in ("extraction", "ingestion", "transformation", "consumption"):
+        registry = loader.orchestration(process)
+        assert registry["workflow_id"] == process
+        assert registry["process"] == process

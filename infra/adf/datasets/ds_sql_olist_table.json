@@ -1,0 +1,24 @@
+{
+  "name": "ds_sql_olist_table",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_sql_olist",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "tableName": {
+        "type": "String"
+      }
+    },
+    "annotations": [],
+    "type": "SqlServerTable",
+    "schema": [],
+    "typeProperties": {
+      "schema": "dbo",
+      "table": {
+        "value": "@dataset().tableName",
+        "type": "Expression"
+      }
+    }
+  }
+}

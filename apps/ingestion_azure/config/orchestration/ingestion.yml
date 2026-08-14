@@ -1,0 +1,10 @@
+workflow_id: ingestion
+dag_config: workflows/ingestion.yml
+description: Legacy medallion ingestion (orders/customers JSON lake)
+domain: olist
+process: ingestion
+
+tasks:
+  orders:
+    orchestrator: orchestrator.ingestion:run_orders
+    domain_module: ingestion.orders:run_pipeline

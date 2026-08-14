@@ -1,0 +1,14 @@
+dag_id: transformation
+schedule: "@daily"
+catchup: false
+tags: [medallion, brewery, orders, transformation]
+owner: data-platform
+process: transformation
+product: medallion
+orchestration: orchestration/transformation.yml
+
+tasks:
+  - task_id: brewery_dq_gold
+    orchestrator: orchestrator.transformation:run_brewery_dq_gold
+  - task_id: kpi
+    orchestrator: orchestrator.transformation:run_kpi

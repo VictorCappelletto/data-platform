@@ -1,0 +1,12 @@
+dag_id: extraction
+schedule: null
+catchup: false
+tags: [olist, azure, extraction]
+owner: data-platform
+process: extraction
+product: olist
+orchestration: orchestration/extraction.yml
+
+tasks:
+  - task_id: landing_export
+    orchestrator: orchestrator.extraction:run_landing_export

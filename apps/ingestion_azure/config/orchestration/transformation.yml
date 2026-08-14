@@ -1,0 +1,16 @@
+workflow_id: transformation
+dag_config: workflows/transformation.yml
+description: landing → processing → curated (pós-ADF ou pós-extraction)
+domain: olist
+process: transformation
+
+tasks:
+  processing:
+    orchestrator: orchestrator.transformation:run_processing
+    domain_module: transformation.olist:run_write_processing
+  curated:
+    orchestrator: orchestrator.transformation:run_curated
+    domain_module: transformation.olist:run_curated
+  sql_catalog:
+    orchestrator: orchestrator.transformation:run_sql_catalog
+    domain_module: transformation.olist:run_sql_catalog

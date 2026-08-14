@@ -1,0 +1,18 @@
+workflow_id: ingestion
+dag_config: workflows/ingestion.yml
+description: Medallion ingestion (brewery + orders)
+process: ingestion
+
+tasks:
+  brewery_ingest:
+    orchestrator: orchestrator.ingestion:run_brewery_ingest
+    domain_module: ingestion.brewery:run_ingest_pipeline
+  orders_landing:
+    orchestrator: orchestrator.ingestion:run_orders_landing
+    domain_module: ingestion.orders:run_landing
+  orders_bronze:
+    orchestrator: orchestrator.ingestion:run_orders_bronze
+    domain_module: ingestion.orders:run_bronze
+  orders_silver:
+    orchestrator: orchestrator.ingestion:run_orders_silver
+    domain_module: ingestion.orders:run_silver

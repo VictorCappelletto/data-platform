@@ -1,0 +1,31 @@
+{
+  "name": "ds_adls_landing_csv",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_adls_olist",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "fileName": {
+        "type": "String"
+      }
+    },
+    "annotations": [],
+    "type": "DelimitedText",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "landing",
+        "fileName": {
+          "value": "@dataset().fileName",
+          "type": "Expression"
+        }
+      },
+      "columnDelimiter": ",",
+      "escapeChar": "\\",
+      "quoteChar": "\"",
+      "firstRowAsHeader": true
+    },
+    "schema": []
+  }
+}

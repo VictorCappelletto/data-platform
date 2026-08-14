@@ -1,0 +1,74 @@
+name: azure-adf-landing
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_for_completion:
+        description: "Wait for pipeline run to finish"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-olist-dev
+  PIPELINE_NAME: pl_olist_landing_copy
+
+jobs:
+  landing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve factory name
+        id: factory
+        run: |
+          ADF=$(az deployment sub list \
+            --query "sort_by([?properties.provisioningState=='Succeeded'], &properties.timestamp)[-1].properties.outputs.dataFactoryName.value" \
+            -o tsv)
+          if [ -z "$ADF" ]; then
+            ADF=$(az datafactory list --resource-group "${{ env.RESOURCE_GROUP }}" --query "[0].name" -o tsv)
+          fi
+          echo "name=$ADF" >> "$GITHUB_OUTPUT"
+          echo "Using factory: $ADF"
+
+      - name: Trigger landing pipeline
+        id: run
+        run: |
+          RUN_ID=$(az datafactory pipeline create-run \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --factory-name "${{ steps.factory.outputs.name }}" \
+            --name "${{ env.PIPELINE_NAME }}" \
+            --query runId -o tsv)
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "Started run: $RUN_ID"
+
+      - name: Wait for completion
+        if: inputs.wait_for_completion == 'true'
+        run: |
+          for i in $(seq 1 180); do
+            STATUS=$(az datafactory pipeline-run show \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --factory-name "${{ steps.factory.outputs.name }}" \
+              --run-id "${{ steps.run.outputs.run_id }}" \
+              --query status -o tsv)
+            echo "Status: $STATUS"
+            if [ "$STATUS" = "Succeeded" ]; then exit 0; fi
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then exit 1; fi
+            sleep 10
+          done
+          echo "Timed out waiting for pipeline"
+          exit 1

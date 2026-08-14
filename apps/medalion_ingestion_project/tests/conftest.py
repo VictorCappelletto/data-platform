@@ -11,6 +11,10 @@ APP_ID = "medalion_ingestion_project"
 APP_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = APP_ROOT.parents[1]
 
+for path in (REPO_ROOT, APP_ROOT):
+    if path.is_dir() and str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
 
 @pytest.fixture(autouse=True)
 def _app_env(monkeypatch: pytest.MonkeyPatch) -> None:

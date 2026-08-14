@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from base import ProjectProcessBase
+from dataplatform.process_base import ProjectProcessBase
 from dataplatform.data_quality import (
     CheckResult,
     null_rate,
@@ -16,20 +16,16 @@ from dataplatform.data_quality import (
     volume_vs_baseline,
 )
 from dataplatform.lake import Layer
-from ingestion.base import (  # shared partition helpers with ingestion/
-    load_date,
-    partition_key,
-    partition_path,
-)
+from ingestion.base import PartitionedIngestionBase
+from utils.settings import bind_medalion_settings
 
 
 class TransformationBase(ProjectProcessBase, ABC):
     """Base for transformation-stage jobs."""
 
-    PROCESS = "transformation"
-
     def __init__(self, domain_key: str, environment: str | None = None) -> None:
-        super().__init__(self.PROCESS, domain_key, environment)
+        super().__init__("transformation", domain_key, environment)
+        bind_medalion_settings(self, environment)
 
     @property
     def source_config(self) -> dict[str, Any]:
@@ -84,6 +80,10 @@ class TransformationBase(ProjectProcessBase, ABC):
 class PartitionedTransformationBase(TransformationBase):
     """Transformation base for country/state/load_date partitioned domains (brewery)."""
 
+    load_date = staticmethod(PartitionedIngestionBase.load_date)
+    partition_key = staticmethod(PartitionedIngestionBase.partition_key)
+    partition_path = staticmethod(PartitionedIngestionBase.partition_path)
+
     def __init__(
         self,
         domain_key: str,
@@ -115,10 +115,10 @@ class PartitionedTransformationBase(TransformationBase):
     ) -> int:
         groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
         for row in rows:
-            groups[partition_key(row)].append(row)
+            groups[self.partition_key(row)].append(row)
         written = 0
         for (country, state), part_rows in groups.items():
-            dest = partition_path(
+            dest = self.partition_path(
                 layer,
                 country=country,
                 state=state,
@@ -170,7 +170,7 @@ class PartitionedTransformationBase(TransformationBase):
         run_checks(results)
 
     def run_dq_gold(self, *, load_dt: str | None = None) -> list[dict[str, Any]]:
-        load_dt = load_dt or load_date()
+        load_dt = load_dt or self.load_date()
         silver = self.read_layer_partitions(Layer.SILVER, load_dt)
         self.run_dq_checks(silver)
         gold = self.transform(silver)

@@ -1,0 +1,10 @@
+workflow_id: extraction
+dag_config: workflows/extraction.yml
+description: SQL Server → landing CSV (equivalente local ao copy ADF)
+domain: olist
+process: extraction
+
+tasks:
+  landing_export:
+    orchestrator: orchestrator.extraction:run_landing_export
+    domain_module: ingestion.landing_export:run_landing_export

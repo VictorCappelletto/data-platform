@@ -1,0 +1,7 @@
+{
+  "name": "shir-olist-dev",
+  "properties": {
+    "type": "SelfHosted",
+    "typeProperties": {}
+  }
+}

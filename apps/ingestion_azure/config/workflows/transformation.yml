@@ -1,0 +1,15 @@
+dag_id: transformation
+schedule: null
+catchup: false
+tags: [olist, azure, transformation]
+owner: data-platform
+process: transformation
+product: olist
+orchestration: orchestration/transformation.yml
+
+tasks:
+  - task_id: processing
+    orchestrator: orchestrator.transformation:run_processing
+  - task_id: curated
+    orchestrator: orchestrator.transformation:run_curated
+    upstream: [processing]

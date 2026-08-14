@@ -37,6 +37,13 @@ class MedalionAppSettings:
     orders: OrdersSettings
 
 
+def bind_medalion_settings(instance: object, environment: str | None = None) -> None:
+    """Replace generic app settings with MedalionAppSettings on a process base instance."""
+    loader = instance.loader  # type: ignore[attr-defined]
+    instance.app = load_app_settings(loader, environment)  # type: ignore[attr-defined]
+    instance.project = instance.app  # type: ignore[attr-defined]
+
+
 def load_app_settings(
     loader: ConfigLoader,
     environment: str | None = None,

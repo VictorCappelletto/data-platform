@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from runtime import APP_ID
+from workflows.orchestrator_base import APP_ID
 
 
 def _load_json(path: Path) -> list[dict]:
@@ -123,7 +123,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    from runtime import bootstrap
+    from dataplatform.bootstrap import bootstrap
+    from workflows.orchestrator_base import APP_ID
 
-    bootstrap()
+    bootstrap(APP_ID)
     raise SystemExit(main())

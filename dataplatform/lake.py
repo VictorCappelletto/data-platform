@@ -9,6 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from dataplatform.paths import ensure_dir, ensure_write_parent
 from dataplatform.utils import get_logger
 
 if TYPE_CHECKING:
@@ -66,9 +67,7 @@ class LayerPaths:
         return str(path.as_posix())
 
     def ensure_local(self, path: str) -> Path:
-        p = Path(path)
-        p.mkdir(parents=True, exist_ok=True)
-        return p
+        return ensure_dir(path)
 
 
 class LakeIO:
@@ -82,10 +81,10 @@ class LakeIO:
     def write_json(self, path: str, rows: list[dict[str, Any]]) -> str:
         target = Path(path)
         if target.suffix:
-            target.parent.mkdir(parents=True, exist_ok=True)
+            ensure_write_parent(target)
             file_path = target
         else:
-            self.paths.ensure_local(path)
+            ensure_dir(path)
             file_path = Path(path) / "data.json"
         with file_path.open("w", encoding="utf-8") as fh:
             json.dump(rows, fh, indent=2, default=str)
@@ -107,10 +106,10 @@ class LakeIO:
             raise ValueError("Cannot write empty CSV")
         target = Path(path)
         if target.suffix:
-            target.parent.mkdir(parents=True, exist_ok=True)
+            ensure_write_parent(target)
             file_path = target
         else:
-            self.paths.ensure_local(path)
+            ensure_dir(path)
             file_path = Path(path) / "data.csv"
         with file_path.open("w", encoding="utf-8", newline="") as fh:
             writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
@@ -134,6 +133,14 @@ def get_spark(app_name: str = "data-platform", **kwargs: Any):
         raise RuntimeError(
             "pyspark is not installed. pip install 'data-platform[spark]'"
         ) from exc
+
+    if os.name == "nt":
+        try:
+            from transformation.io import spark_hadoop_configs
+
+            kwargs = {**spark_hadoop_configs(), **kwargs}
+        except ImportError:
+            pass
 
     builder = (
         SparkSession.builder.appName(app_name)

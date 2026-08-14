@@ -1,0 +1,13 @@
+process: ingestion
+
+orders:
+  domain: olist
+  table: orders
+  source_table: dbo.orders
+  primary_key: order_id
+
+customers:
+  domain: olist
+  table: customers
+  source_table: dbo.customers
+  primary_key: customer_id
