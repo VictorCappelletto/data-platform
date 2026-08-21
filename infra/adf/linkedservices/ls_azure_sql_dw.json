@@ -1,0 +1,13 @@
+{
+  "name": "ls_azure_sql_dw",
+  "properties": {
+    "annotations": [],
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+      "connectionString": {
+        "type": "SecureString",
+        "value": "__AZURE_SQL_DW_CONNECTION__"
+      }
+    }
+  }
+}

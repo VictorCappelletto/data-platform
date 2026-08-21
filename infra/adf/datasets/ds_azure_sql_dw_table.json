@@ -1,0 +1,30 @@
+{
+  "name": "ds_azure_sql_dw_table",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_azure_sql_dw",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "schemaName": {
+        "type": "String"
+      },
+      "tableName": {
+        "type": "String"
+      }
+    },
+    "annotations": [],
+    "type": "AzureSqlTable",
+    "schema": [],
+    "typeProperties": {
+      "schema": {
+        "value": "@dataset().schemaName",
+        "type": "Expression"
+      },
+      "table": {
+        "value": "@dataset().tableName",
+        "type": "Expression"
+      }
+    }
+  }
+}

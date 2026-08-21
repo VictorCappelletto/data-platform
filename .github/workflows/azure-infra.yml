@@ -27,6 +27,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Decrypt secrets (SOPS)
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: |
+          if [ -z "$SOPS_AGE_KEY" ]; then
+            echo "SOPS_AGE_KEY not set — using AZURE_SQL_ADMIN_PASSWORD secret fallback"
+            exit 0
+          fi
+          mkdir -p encrypted-secrets
+          printf '%s' "$SOPS_AGE_KEY" > encrypted-secrets/.age-key
+          chmod 600 encrypted-secrets/.age-key
+          docker compose --profile secrets run --rm secrets decrypt
+          docker compose --profile secrets run --rm secrets prepare
+
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -48,11 +62,27 @@ jobs:
             --parameters infra/parameters/dev.bicepparam
 
       - name: Deploy Bicep
+        env:
+          AZURE_SQL_ADMIN_PASSWORD: ${{ secrets.AZURE_SQL_ADMIN_PASSWORD }}
         run: |
+          if [ -f .env ]; then
+            PASS=$(grep -E '^AZURE_SQL_ADMIN_PASSWORD=' .env | cut -d= -f2- || true)
+            if [ -z "$PASS" ]; then
+              PASS=$(grep -E '^MSSQL_SA_PASSWORD=' .env | cut -d= -f2- || true)
+            fi
+          fi
+          if [ -z "$PASS" ]; then
+            PASS="$AZURE_SQL_ADMIN_PASSWORD"
+          fi
+          if [ -z "$PASS" ]; then
+            echo "No SQL password: set SOPS_AGE_KEY (preferred) or AZURE_SQL_ADMIN_PASSWORD secret"
+            exit 1
+          fi
           az deployment sub create \
             --location "${{ env.LOCATION }}" \
             --template-file infra/main.bicep \
             --parameters infra/parameters/dev.bicepparam \
+              sqlAdminPassword="$PASS" \
             --name "github-${{ github.run_number }}"
 
       - name: Post-deploy verify

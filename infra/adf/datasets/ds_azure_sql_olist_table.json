@@ -1,0 +1,24 @@
+{
+  "name": "ds_azure_sql_olist_table",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_azure_sql_olist",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "tableName": {
+        "type": "String"
+      }
+    },
+    "annotations": [],
+    "type": "AzureSqlTable",
+    "schema": [],
+    "typeProperties": {
+      "schema": "dbo",
+      "table": {
+        "value": "@dataset().tableName",
+        "type": "Expression"
+      }
+    }
+  }
+}
