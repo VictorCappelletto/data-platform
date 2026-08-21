@@ -106,7 +106,10 @@ class OlistLakeMount:
                 "ADLS requires azure-identity and azure-storage-file-datalake. "
                 "pip install azure-identity azure-storage-file-datalake"
             ) from exc
-        credential = DefaultAzureCredential(exclude_interactive_browser_credential=False)
+        credential = DefaultAzureCredential(
+            exclude_interactive_browser_credential=True,
+            exclude_shared_token_cache_credential=True,
+        )
         return DataLakeServiceClient(
             account_url=self._adls_account_url.format(account=account),
             credential=credential,

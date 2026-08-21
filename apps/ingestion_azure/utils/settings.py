@@ -62,10 +62,22 @@ def load_app_settings(
         name=raw.get("name", app_id),
         lake_prefix=raw.get("lake_prefix", app_id),
         sql_server=SqlServerSettings(
-            server=os.getenv("MSSQL_SERVER", sql_raw.get("server", "localhost,1433")),
+            server=(
+                os.getenv("MSSQL_SERVER")
+                or os.getenv("AZURE_SQL_SERVER")
+                or sql_raw.get("server", "localhost,1433")
+            ),
             database=os.getenv("MSSQL_DATABASE", sql_raw.get("database", "olist")),
-            user=os.getenv("MSSQL_USER", sql_raw.get("user", "sa")),
-            password=os.getenv("MSSQL_SA_PASSWORD", sql_raw.get("password", "")),
+            user=(
+                os.getenv("MSSQL_USER")
+                or os.getenv("AZURE_SQL_ADMIN_LOGIN")
+                or sql_raw.get("user", "sa")
+            ),
+            password=(
+                os.getenv("MSSQL_SA_PASSWORD")
+                or os.getenv("AZURE_SQL_ADMIN_PASSWORD")
+                or sql_raw.get("password", "")
+            ),
             driver=os.getenv(
                 "MSSQL_ODBC_DRIVER",
                 sql_raw.get("driver", "ODBC Driver 18 for SQL Server"),

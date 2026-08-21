@@ -1,0 +1,24 @@
+{
+  "name": "ls_azure_batch",
+  "properties": {
+    "type": "AzureBatch",
+    "typeProperties": {
+      "accountName": "__BATCH_ACCOUNT_NAME__",
+      "accessKey": {
+        "type": "SecureString",
+        "value": "__BATCH_ACCESS_KEY__"
+      },
+      "batchUri": "__BATCH_URI__",
+      "poolName": "__BATCH_POOL_NAME__",
+      "linkedServiceName": {
+        "referenceName": "ls_batch_staging_storage",
+        "type": "LinkedServiceReference"
+      }
+    },
+    "annotations": [],
+    "connectVia": {
+      "referenceName": "AutoResolveIntegrationRuntime",
+      "type": "IntegrationRuntimeReference"
+    }
+  }
+}

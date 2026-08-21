@@ -18,9 +18,21 @@ Write-Host "Reading deployment outputs: $DeploymentName"
 $outputs = az deployment sub show --name $DeploymentName --query properties.outputs -o json | ConvertFrom-Json
 
 $vars = @{
-    AZURE_STORAGE_ACCOUNT   = $outputs.storageAccountName.value
-    AZURE_ADLS_ENDPOINT     = $outputs.adlsEndpoint.value
-    AZURE_DATA_FACTORY_NAME = $outputs.dataFactoryName.value
+    AZURE_STORAGE_ACCOUNT    = $outputs.storageAccountName.value
+    AZURE_ADLS_ENDPOINT      = $outputs.adlsEndpoint.value
+    AZURE_DATA_FACTORY_NAME  = $outputs.dataFactoryName.value
+    AZURE_SQL_SERVER         = $outputs.sqlServerFqdn.value
+    AZURE_SQL_ADMIN_LOGIN    = $outputs.sqlAdminLogin.value
+    AZURE_SQL_OLIST_DATABASE = $outputs.olistDatabaseName.value
+    AZURE_SQL_DW_DATABASE    = $outputs.olistDwDatabaseName.value
+    AZURE_ACR_NAME           = $outputs.acrName.value
+    AZURE_ACR_LOGIN_SERVER   = $outputs.acrLoginServer.value
+    AZURE_BATCH_ACCOUNT_NAME = $outputs.batchAccountName.value
+    AZURE_BATCH_ACCOUNT_URL  = $outputs.batchAccountUrl.value
+    AZURE_BATCH_POOL_NAME    = $outputs.batchPoolName.value
+    AZURE_BATCH_STORAGE_ACCOUNT_NAME = $outputs.batchStorageAccountName.value
+    AZURE_TRANSFORM_IMAGE    = "$($outputs.acrLoginServer.value)/$($outputs.transformImageName.value)"
+    AZURE_BATCH_POOL_IDENTITY_CLIENT_ID = $outputs.batchPoolIdentityClientId.value
 }
 
 if (-not (Test-Path $EnvFile)) {

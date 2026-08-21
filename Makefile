@@ -1,7 +1,7 @@
 .PHONY: help install test lint clean-pycache clean-empty-dirs clean demo dag-validate up down inspect sql-up sql-init sql-down \
 	secrets-init secrets-set secrets-add secrets-decrypt secrets-edit secrets-status secrets-export secrets-build \
-	env-prepare azure-verify-rg azure-verify-storage azure-verify-adf azure-infra-deploy \
-	azure-adf-publish azure-adf-trigger azure-shir-setup azure-olist-transform azure-olist-publish-sql \
+	env-prepare azure-verify-rg azure-verify-storage azure-verify-adf azure-infra-deploy azure-sql-seed \
+	azure-adf-publish azure-adf-deploy azure-transform-image-push azure-adf-trigger azure-olist-full azure-shir-setup azure-olist-transform azure-olist-publish-sql \
 	olist-spark-catalog olist-publish-sql \
 	azure-oidc-setup azure-oidc-verify azure-oidc-push
 
@@ -12,8 +12,9 @@ help:
 	@echo "Targets: install | test | lint | clean-pycache | clean-empty-dirs | clean | demo | brewery-demo | inspect | up | down"
 	@echo "         sql-up | sql-init | sql-down"
 	@echo "         env-prepare | secrets-* | azure-verify-rg | azure-verify-storage | azure-verify-adf"
-	@echo "         azure-infra-deploy | azure-adf-publish | azure-adf-trigger | azure-shir-setup"
-	@echo "         azure-olist-transform | azure-olist-publish-sql | olist-spark-catalog | olist-publish-sql"
+	@echo "         azure-infra-deploy | azure-sql-seed | azure-transform-image-push | azure-adf-publish | azure-adf-deploy"
+	@echo "         azure-adf-trigger | azure-olist-full"
+	@echo "         azure-shir-setup (legacy local SQL) | azure-olist-transform | azure-olist-publish-sql"
 
 
 
@@ -61,9 +62,21 @@ demo:
 
 
 
+demo-bulk:
+
+	python apps/medalion_ingestion_project/workflows/runs/medalion_demo.py --mode orders_full --bulk
+
+
+
 brewery-demo:
 
 	python apps/medalion_ingestion_project/workflows/runs/medalion_demo.py --mode brewery_full
+
+
+
+brewery-demo-bulk:
+
+	python apps/medalion_ingestion_project/workflows/runs/medalion_demo.py --mode brewery_full --bulk
 
 
 
@@ -133,9 +146,25 @@ azure-adf-publish: env-prepare
 
 
 
+azure-transform-image-push: env-prepare
+
+	powershell -ExecutionPolicy Bypass -File docker/azure/push-transform-image.ps1
+
+
+
+azure-adf-deploy: env-prepare azure-transform-image-push azure-adf-publish
+
+
+
 azure-adf-trigger: env-prepare
 
-	powershell -ExecutionPolicy Bypass -File docker/azure/trigger-adf-landing.ps1
+	powershell -ExecutionPolicy Bypass -File docker/azure/trigger-adf-landing.ps1 -PipelineName pl_olist_landing_copy
+
+
+
+azure-olist-full: env-prepare
+
+	powershell -ExecutionPolicy Bypass -File docker/azure/trigger-adf-landing.ps1 -PipelineName pl_olist_end_to_end
 
 
 
@@ -175,13 +204,15 @@ azure-shir-repair:
 
 
 
-azure-infra-deploy:
+azure-infra-deploy: env-prepare
 
-	az deployment sub what-if --location eastus --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam
+	powershell -ExecutionPolicy Bypass -File docker/azure/deploy-infra.ps1
 
-	az deployment sub create --location eastus --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam --name "local-storage"
 
-	powershell -ExecutionPolicy Bypass -File docker/azure/sync-deploy-outputs.ps1
+
+azure-sql-seed: env-prepare
+
+	powershell -ExecutionPolicy Bypass -File docker/azure/seed-azure-sql.ps1
 
 
 

@@ -1,0 +1,48 @@
+{
+  "name": "pl_olist_publish_sql",
+  "properties": {
+    "description": "ADLS -> Azure SQL olist_dw bronze/silver/gold (Python Custom Activity on Azure Batch)",
+    "activities": [
+      {
+        "name": "Olist Publish SQL Python",
+        "type": "Custom",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": true
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "command": "python workflows/runs/olist_demo.py --mode publish",
+          "resourceLinkedService": {
+            "referenceName": "ls_acr_olist",
+            "type": "LinkedServiceReference"
+          },
+          "referenceName": "__TRANSFORM_IMAGE__",
+          "extendedProperties": {
+            "DATA_PLATFORM_ROOT": "/app",
+            "DATA_PLATFORM_APP": "ingestion_azure",
+            "OLIST_LAKE_BACKEND": "adls",
+            "PLATFORM_ENV": "azure",
+            "AZURE_STORAGE_ACCOUNT": "__AZURE_STORAGE_ACCOUNT__",
+            "AZURE_CLIENT_ID": "__BATCH_POOL_IDENTITY_CLIENT_ID__",
+            "AZURE_SQL_SERVER": "__AZURE_SQL_SERVER__",
+            "AZURE_SQL_ADMIN_LOGIN": "__AZURE_SQL_ADMIN_LOGIN__",
+            "AZURE_SQL_ADMIN_PASSWORD": {
+              "type": "SecureString",
+              "value": "__AZURE_SQL_ADMIN_PASSWORD__"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_batch",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ],
+    "annotations": []
+  }
+}

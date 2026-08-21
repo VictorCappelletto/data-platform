@@ -1,121 +1,123 @@
-# Ingestion Azure — Olist + SQL Server + ADLS
-
-App do monorepo espelhando o pipeline [Curso_Pipeline_Azure1](https://github.com/VictorCappelletto/Curso_Pipeline_Azure1) / notebook Databricks `olist_processing.ipynb`.
-
-Ver mapeamento notebook → código: [docs/olist-databricks-mapping.md](../../docs/olist-databricks-mapping.md).
-
-## Fonte de dados (local)
-
-SQL Server Docker → landing CSV → processing parquet → curated CSV.
-
-| Variável | Default |
-|----------|---------|
-| `MSSQL_SERVER` | `localhost,1433` |
-| `MSSQL_DATABASE` | `olist` |
-| `MSSQL_USER` | `sa` |
-| `MSSQL_SA_PASSWORD` | `Olist@Dev123!` |
-| `OLIST_LAKE_BACKEND` | `local` (`adls` para Azure) |
-| `OLIST_PROCESSING_ENGINE` | `local` (`spark` para PySpark) |
-| `SPARK_MASTER` | `local[*]` ou `spark://localhost:7077` |
-| `AZURE_STORAGE_ACCOUNT` | pós-deploy infra |
-
-Ver [docs/spark-processing.md](../../docs/spark-processing.md).
-
-## Estrutura (como Databricks)
-
-```text
-ingestion_azure/
-├── config/
-│   ├── extraction/          # SQL Server + lista de tabelas
-│   ├── ingestion/           # domínios legacy
-│   ├── transformation/      # tabelas, filtros (customers_RJ)
-│   └── consumption/         # bronze/silver/gold → olist_dw
-├── extraction/              # pyodbc
-├── ingestion/
-│   ├── landing_export.py    # SQL → landing CSV (ADF)
-│   └── orders.py            # legacy — use olist_demo
-├── transformation/          # notebook olist_processing.ipynb
-│   ├── base.py              # engine dispatch + notebook steps
-│   ├── io.py                # mount + CSV/parquet local/ADLS + Spark paths
-│   └── olist.py             # OlistTransformPipeline + SparkSqlCatalog
-├── consumption/
-│   └── sql_server_publish.py  # landing→bronze, processing→silver, curated→gold
-└── tests/
-```
-
-```text
-ingestion_azure/
-├── config/
-│   ├── extraction/ ingestion/ transformation/ consumption/
-│   ├── orchestration/             # extraction | ingestion | transformation | consumption
-│   └── workflows/                 # DAG por processo
-├── orchestrator/
-│   ├── extraction.py
-│   ├── ingestion.py
-│   ├── transformation.py
-│   └── consumption.py
-├── workflows/
-│   ├── extraction_dag.py
-│   ├── ingestion_dag.py
-│   ├── transformation_dag.py
-│   ├── consumption_dag.py
-│   └── runs/
-│       ├── extraction.py
-│       ├── ingestion.py
-│       ├── transformation.py
-│       ├── consumption.py
-│       └── olist_demo.py
-├── extraction/ ingestion/ transformation/ consumption/
-└── tests/
-```
-
-## Rodar via workflows (1 runner por processo)
-
-```powershell
-set DATA_PLATFORM_APP=ingestion_azure
-pip install -e ".[olist]"
-
-python workflows/runs/extraction.py
-python workflows/runs/transformation.py --mode from_landing
-python workflows/runs/consumption.py
-python workflows/runs/ingestion.py          # legacy orders
-```
-
-## Pipeline completo (composição)
-
-```powershell
-python workflows/runs/olist_demo.py --mode full
-python workflows/runs/olist_demo.py --mode transform_from_landing
-python workflows/runs/olist_demo.py --mode publish
-python workflows/runs/olist_demo.py --mode sql_catalog
-```
-
-## Rodar pipeline (domain direto — legado)
-
-**Local (pyarrow):**
-
-```powershell
-set DATA_PLATFORM_APP=ingestion_azure
-pip install -e ".[olist]"
-python -c "from dataplatform.bootstrap import bootstrap; bootstrap('ingestion_azure'); from workflows.runs.olist_demo import run_full; print(run_full())"
-```
-
-**Spark (como Databricks):**
-
-```powershell
-set OLIST_PROCESSING_ENGINE=spark
-set SPARK_MASTER=local[*]
-python -c "from dataplatform.bootstrap import bootstrap; bootstrap('ingestion_azure'); from workflows.runs.olist_demo import run_full; print(run_full())"
-```
-
-## Roadmap
-
-1. ~~SQL Server local + schema Olist~~
-2. ~~App scaffold~~
-3. ~~Transformation landing → processing → curated (notebook)~~
-4. ~~GitHub Actions / ADF → landing ADLS~~ — [docs/azure-adf-setup.md](../../docs/azure-adf-setup.md)
-5. ~~Processing + curated no ADLS~~ — `make azure-olist-transform`
-6. ~~Spark SQL catalog (`customers_db`)~~ — `make olist-spark-catalog`
-7. ~~Power BI / curated~~ — [docs/power-bi-setup.md](../../docs/power-bi-setup.md) · `make azure-olist-publish-sql` → `olist_dw.gold.*`
-
-Ver também: [docs/sql-server-setup.md](../../docs/sql-server-setup.md), [docs/azure-infra-setup.md](../../docs/azure-infra-setup.md)
+# ingestion_azure
+
+Pipeline **Olist** em **Azure SQL + ADF + ADLS** — landing via Copy; **transform + publish via Python Custom Activity** (Azure Batch + ACR).
+
+Referência: [Curso_Pipeline_Azure1](https://github.com/VictorCappelletto/Curso_Pipeline_Azure1) · [olist-databricks-mapping.md](../../docs/olist-databricks-mapping.md)
+
+---
+
+## Fluxo (ADF master pipeline)
+
+```text
+pl_olist_end_to_end
+├── pl_olist_landing_copy     Azure SQL olist → ADLS landing/*.csv        (Copy)
+├── pl_olist_transform        landing → processing + curated              (Custom Activity / Python)
+└── pl_olist_publish_sql      ADLS → Azure SQL olist_dw bronze/silver/gold (Custom Activity / Python)
+                                      └── Power BI Desktop
+```
+
+Cloud-to-cloud — **sem Self-hosted IR** no caminho principal.
+
+| Etapa | Activity ADF | Detalhe |
+|-------|--------------|---------|
+| Landing | ForEach + Copy | `AzureSqlSource` → DelimitedText (8 tabelas) |
+| Transform | Custom Activity | Container `olist-transform` — CSV→Parquet + `customers_RJ` |
+| Publish | Custom Activity | Container — `olist_demo.py --mode publish` → `olist_dw` |
+
+Artefatos: `infra/adf/pipelines/` · Compute: ACR + Azure Batch (`infra/modules/acr.bicep`, `batch.bicep`)
+
+---
+
+## Infra (Bicep)
+
+| Recurso | Módulo |
+|---------|--------|
+| ADLS Gen2 (landing, processing, curated) | `infra/modules/storage.bicep` |
+| Data Factory + MI → storage RBAC | `infra/modules/datafactory.bicep` |
+| Azure SQL (olist + olist_dw, Basic tier) | `infra/modules/sql.bicep` |
+| ACR (imagem Python) | `infra/modules/acr.bicep` |
+| Azure Batch + pool container | `infra/modules/batch.bicep` |
+
+---
+
+## Deploy e execução
+
+```powershell
+# 1. Secrets + infra
+make env-prepare
+make azure-infra-deploy          # AZURE_SQL_ADMIN_PASSWORD from SOPS → .env
+
+# 2. Seed Azure SQL (schema + dados Olist)
+make azure-sql-seed
+
+# 3. Build/push imagem + publicar ADF
+make azure-adf-deploy            # push-transform-image + publish-adf
+
+# 4. Pipeline completo (1 clique)
+make azure-olist-full
+```
+
+Somente landing: `make azure-adf-trigger`
+
+---
+
+## Variáveis (.env pós-deploy)
+
+| Variável | Descrição |
+|----------|-----------|
+| `AZURE_SQL_SERVER` | FQDN (`*.database.windows.net`) |
+| `AZURE_SQL_ADMIN_LOGIN` | default `olistadmin` |
+| `AZURE_SQL_ADMIN_PASSWORD` | **SOPS** (`make secrets-set`) — fallback `MSSQL_SA_PASSWORD` |
+| `AZURE_STORAGE_ACCOUNT` | ADLS |
+| `AZURE_DATA_FACTORY_NAME` | ADF |
+| `AZURE_ACR_LOGIN_SERVER` | Registry da imagem transform |
+| `AZURE_BATCH_ACCOUNT_NAME` | Batch para Custom Activity |
+| `AZURE_TRANSFORM_IMAGE` | ex. `myacr.azurecr.io/olist-transform:latest` |
+
+Preenchidas por `docker/azure/sync-deploy-outputs.ps1`.
+
+---
+
+## Local (dev offline — legado)
+
+Python runners + SQL Docker continuam disponíveis para dev sem Azure:
+
+```powershell
+set DATA_PLATFORM_APP=ingestion_azure
+pip install -e ".[olist]"
+make sql-init
+python workflows/runs/olist_demo.py --mode full
+```
+
+Scripts Makefile `azure-olist-transform` / `azure-olist-publish-sql` = mesmo código Python, execução local (sem Batch).
+
+---
+
+## Testes
+
+```bash
+pytest apps/ingestion_azure/tests -q   # 17
+```
+
+Testam lógica Python (local/spark). Pipelines ADF validados via run no portal / `make azure-olist-full`.
+
+---
+
+## Docs
+
+| Doc | Conteúdo |
+|-----|----------|
+| [azure-infra-setup.md](../../docs/azure-infra-setup.md) | Bicep deploy |
+| [azure-adf-setup.md](../../docs/azure-adf-setup.md) | ADF publish + pipelines |
+| [power-bi-setup.md](../../docs/power-bi-setup.md) | Consumo `olist_dw.gold.*` |
+
+---
+
+## Decisões
+
+| Decisão | Motivo |
+|---------|--------|
+| Azure SQL vs Docker+SHIR | Cloud-to-cloud, sem IR local, portfolio sênior |
+| Custom Activity vs Copy transform | Mesmo código Python dos testes; filtros/curated no lake |
+| Landing ainda Copy | Bulk SQL→ADLS é caso ideal para Copy nativo |
+| Python local mantido | Testes unitários + dev offline |

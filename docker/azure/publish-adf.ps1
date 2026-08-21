@@ -35,15 +35,6 @@ function Publish-AdfResource {
     ($Properties | ConvertTo-Json -Depth 50) | Set-Content $propsFile -Encoding utf8
     try {
         switch ($Kind) {
-            "integrationRuntime" {
-                az datafactory integration-runtime self-hosted create `
-                    --resource-group $ResourceGroup `
-                    --factory-name $FactoryName `
-                    --name $Name `
-                    --description "Self-hosted IR for local SQL Server (Olist)" `
-                    --only-show-errors
-                if ($LASTEXITCODE -ne 0) { throw "integration-runtime create failed: $Name" }
-            }
             "linkedService" {
                 az datafactory linked-service create `
                     --resource-group $ResourceGroup `
@@ -87,90 +78,121 @@ if ([string]::IsNullOrWhiteSpace($FactoryName)) {
 }
 
 $storageAccount = Get-EnvValue "AZURE_STORAGE_ACCOUNT"
+$sqlServer = Get-EnvValue "AZURE_SQL_SERVER"
+$sqlLogin = Get-EnvValue "AZURE_SQL_ADMIN_LOGIN"
+if ([string]::IsNullOrWhiteSpace($sqlLogin)) { $sqlLogin = "olistadmin" }
+$sqlPassword = Get-EnvValue "AZURE_SQL_ADMIN_PASSWORD"
+if ([string]::IsNullOrWhiteSpace($sqlPassword)) {
+    $sqlPassword = Get-EnvValue "MSSQL_SA_PASSWORD"
+}
+$olistDb = Get-EnvValue "AZURE_SQL_OLIST_DATABASE"
+if ([string]::IsNullOrWhiteSpace($olistDb)) { $olistDb = "olist" }
+$dwDb = Get-EnvValue "AZURE_SQL_DW_DATABASE"
+if ([string]::IsNullOrWhiteSpace($dwDb)) { $dwDb = "olist_dw" }
+
+$acrLogin = Get-EnvValue "AZURE_ACR_LOGIN_SERVER"
+$batchAccount = Get-EnvValue "AZURE_BATCH_ACCOUNT_NAME"
+$batchUri = Get-EnvValue "AZURE_BATCH_ACCOUNT_URL"
+$batchPool = Get-EnvValue "AZURE_BATCH_POOL_NAME"
+$batchStorage = Get-EnvValue "AZURE_BATCH_STORAGE_ACCOUNT_NAME"
+$batchIdentityClientId = Get-EnvValue "AZURE_BATCH_POOL_IDENTITY_CLIENT_ID"
+$transformImage = Get-EnvValue "AZURE_TRANSFORM_IMAGE"
+if ([string]::IsNullOrWhiteSpace($transformImage)) { $transformImage = "olist-transform:latest" }
+
 if ([string]::IsNullOrWhiteSpace($storageAccount)) {
     throw "AZURE_STORAGE_ACCOUNT not set in $EnvFile"
 }
-
-$adlsUrl = "https://$storageAccount.dfs.core.windows.net"
-$sqlServer = Get-EnvValue "MSSQL_SERVER"
-$sqlDatabase = Get-EnvValue "MSSQL_DATABASE"
-$sqlUser = Get-EnvValue "MSSQL_USER"
-$sqlPassword = Get-EnvValue "MSSQL_SA_PASSWORD"
+if ([string]::IsNullOrWhiteSpace($sqlServer)) {
+    throw "AZURE_SQL_SERVER not set. Run infra deploy + sync-deploy-outputs.ps1"
+}
 if ([string]::IsNullOrWhiteSpace($sqlPassword)) {
-    throw "MSSQL_SA_PASSWORD not set. Use secrets pipeline or .env"
+    throw "AZURE_SQL_ADMIN_PASSWORD (or MSSQL_SA_PASSWORD) not set"
+}
+if ([string]::IsNullOrWhiteSpace($acrLogin) -or [string]::IsNullOrWhiteSpace($batchAccount)) {
+    throw "Batch/ACR outputs missing. Run: make azure-infra-deploy"
 }
 
-$sqlConn = "Server=$sqlServer;Database=$sqlDatabase;User Id=$sqlUser;Password=$sqlPassword;TrustServerCertificate=True;Encrypt=False"
+$adlsUrl = "https://$storageAccount.dfs.core.windows.net"
+$olistConn = "Server=tcp:$sqlServer,1433;Initial Catalog=$olistDb;User ID=$sqlLogin;Password=$sqlPassword;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+$dwConn = "Server=tcp:$sqlServer,1433;Initial Catalog=$dwDb;User ID=$sqlLogin;Password=$sqlPassword;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+
+Write-Host "Fetching Batch/ACR credentials..."
+$batchKey = az batch account keys list --name $batchAccount --resource-group $ResourceGroup --query primary -o tsv
+if ($LASTEXITCODE -ne 0) { throw "Failed to list Batch account keys" }
+$acrName = ($acrLogin -replace '\.azurecr\.io$', '')
+$acrUser = az acr credential show --name $acrName --query username -o tsv
+$acrPass = az acr credential show --name $acrName --query "passwords[0].value" -o tsv
+if ($LASTEXITCODE -ne 0) { throw "Failed to read ACR credentials" }
+$batchStorageKey = az storage account keys list --account-name $batchStorage --resource-group $ResourceGroup --query "[0].value" -o tsv
+if ($LASTEXITCODE -ne 0) { throw "Failed to read Batch staging storage key" }
+$batchStorageConn = "DefaultEndpointsProtocol=https;AccountName=$batchStorage;AccountKey=$batchStorageKey;EndpointSuffix=core.windows.net"
+
+if ([string]::IsNullOrWhiteSpace($batchUri)) {
+    $batchUri = "https://$batchAccount.eastus.batch.azure.com"
+}
+if ([string]::IsNullOrWhiteSpace($batchPool)) {
+    $batchPool = "olist-pool"
+}
+
+$fullTransformImage = if ($transformImage -match '/') { $transformImage } else { "$acrLogin/$transformImage" }
 
 Write-Host "Publishing ADF artifacts to $FactoryName ($ResourceGroup)..."
 
-$irStatus = az datafactory integration-runtime get-status `
-    --resource-group $ResourceGroup `
-    --factory-name $FactoryName `
-    --integration-runtime-name shir-olist-dev `
-    --query "properties.state" -o tsv 2>$null
+# Linked services — lake + SQL
+$lsAdls = (Get-Content (Join-Path $AdfRoot "linkedservices/ls_adls_olist.json") -Raw).Replace("__ADLS_URL__", "$adlsUrl/")
+Publish-AdfResource -Kind linkedService -Name "ls_adls_olist" -Properties (($lsAdls | ConvertFrom-Json).properties)
 
-if ($irStatus -ne "Online") {
-    Write-Host "  WARN: SHIR not Running (status=$irStatus). SQL linked service skipped."
-    Write-Host "        Run setup-shir.ps1 then re-run publish-adf.ps1"
-    $skipSql = $true
-} else {
-    $skipSql = $false
-}
+$lsOlist = (Get-Content (Join-Path $AdfRoot "linkedservices/ls_azure_sql_olist.json") -Raw).Replace("__AZURE_SQL_OLIST_CONNECTION__", $olistConn)
+Publish-AdfResource -Kind linkedService -Name "ls_azure_sql_olist" -Properties (($lsOlist | ConvertFrom-Json).properties)
 
-# Integration Runtime (Self-hosted — register with setup-shir.ps1)
-try {
-    az datafactory integration-runtime show `
-        --resource-group $ResourceGroup `
-        --factory-name $FactoryName `
-        --integration-runtime-name shir-olist-dev `
-        --only-show-errors | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  OK integrationRuntime shir-olist-dev (exists)"
-    }
-} catch {
-    Publish-AdfResource -Kind integrationRuntime -Name "shir-olist-dev" -Properties @{}
-}
+$lsDw = (Get-Content (Join-Path $AdfRoot "linkedservices/ls_azure_sql_dw.json") -Raw).Replace("__AZURE_SQL_DW_CONNECTION__", $dwConn)
+Publish-AdfResource -Kind linkedService -Name "ls_azure_sql_dw" -Properties (($lsDw | ConvertFrom-Json).properties)
 
-# Linked services (substitute placeholders)
-$lsAdls = Get-Content (Join-Path $AdfRoot "linkedservices/ls_adls_olist.json") -Raw
-$lsAdls = $lsAdls.Replace("__ADLS_URL__", "$adlsUrl/")
-$lsAdlsObj = $lsAdls | ConvertFrom-Json
-Publish-AdfResource -Kind linkedService -Name $lsAdlsObj.name -Properties $lsAdlsObj.properties
+# Linked services — Batch + ACR (Custom Activity)
+$lsBatchStorage = (Get-Content (Join-Path $AdfRoot "linkedservices/ls_batch_staging_storage.json") -Raw).Replace("__BATCH_STORAGE_CONNECTION_STRING__", $batchStorageConn)
+Publish-AdfResource -Kind linkedService -Name "ls_batch_staging_storage" -Properties (($lsBatchStorage | ConvertFrom-Json).properties)
 
-if (-not $skipSql) {
-    $lsSql = Get-Content (Join-Path $AdfRoot "linkedservices/ls_sql_olist.json") -Raw
-    $lsSql = $lsSql.Replace("__SQL_CONNECTION_STRING__", $sqlConn)
-    $lsSqlObj = $lsSql | ConvertFrom-Json
-    Publish-AdfResource -Kind linkedService -Name $lsSqlObj.name -Properties $lsSqlObj.properties
-} else {
-    Write-Host "  SKIP linkedService ls_sql_olist (SHIR offline)"
-}
+$lsAcr = (Get-Content (Join-Path $AdfRoot "linkedservices/ls_acr_olist.json") -Raw `
+    ).Replace("__ACR_LOGIN_SERVER__", $acrLogin `
+    ).Replace("__ACR_USERNAME__", $acrUser `
+    ).Replace("__ACR_PASSWORD__", $acrPass)
+Publish-AdfResource -Kind linkedService -Name "ls_acr_olist" -Properties (($lsAcr | ConvertFrom-Json).properties)
+
+$lsBatch = (Get-Content (Join-Path $AdfRoot "linkedservices/ls_azure_batch.json") -Raw `
+    ).Replace("__BATCH_ACCOUNT_NAME__", $batchAccount `
+    ).Replace("__BATCH_ACCESS_KEY__", $batchKey `
+    ).Replace("__BATCH_URI__", $batchUri `
+    ).Replace("__BATCH_POOL_NAME__", $batchPool)
+Publish-AdfResource -Kind linkedService -Name "ls_azure_batch" -Properties (($lsBatch | ConvertFrom-Json).properties)
 
 # Datasets
 Get-ChildItem (Join-Path $AdfRoot "datasets") -Filter "*.json" | ForEach-Object {
     $artifact = Read-JsonArtifact $_.FullName
-    if ($skipSql -and $artifact.name -eq "ds_sql_olist_table") {
-        Write-Host "  SKIP dataset ds_sql_olist_table (SHIR offline)"
-        return
-    }
+    if ($artifact.name -eq "ds_sql_olist_table") { return }
     Publish-AdfResource -Kind dataset -Name $artifact.name -Properties $artifact.properties
 }
 
-# Pipelines
-if (-not $skipSql) {
-    Get-ChildItem (Join-Path $AdfRoot "pipelines") -Filter "*.json" | ForEach-Object {
-        $artifact = Read-JsonArtifact $_.FullName
-        Publish-AdfResource -Kind pipeline -Name $artifact.name -Properties $artifact.properties
+# Pipelines (substitute Custom Activity placeholders)
+$pipelineReplacements = @{
+    "__AZURE_STORAGE_ACCOUNT__" = $storageAccount
+    "__TRANSFORM_IMAGE__" = $fullTransformImage
+    "__BATCH_POOL_IDENTITY_CLIENT_ID__" = $batchIdentityClientId
+    "__AZURE_SQL_SERVER__" = $sqlServer
+    "__AZURE_SQL_ADMIN_LOGIN__" = $sqlLogin
+    "__AZURE_SQL_ADMIN_PASSWORD__" = $sqlPassword
+}
+
+Get-ChildItem (Join-Path $AdfRoot "pipelines") -Filter "*.json" | ForEach-Object {
+    $raw = Get-Content $_.FullName -Raw
+    foreach ($key in $pipelineReplacements.Keys) {
+        $raw = $raw.Replace($key, $pipelineReplacements[$key])
     }
-} else {
-    Write-Host "  SKIP pipeline pl_olist_landing_copy (requires SQL linked service + SHIR)"
+    $artifact = $raw | ConvertFrom-Json
+    Publish-AdfResource -Kind pipeline -Name $artifact.name -Properties $artifact.properties
 }
 
 Write-Host ""
 Write-Host "ADF publish complete."
-Write-Host "  Factory: $FactoryName"
-Write-Host "  Pipeline: pl_olist_landing_copy"
-Write-Host ""
-Write-Host "Next: register Self-hosted IR (Phase 5):"
-Write-Host "  powershell -ExecutionPolicy Bypass -File docker/azure/setup-shir.ps1"
+Write-Host "  Image: $fullTransformImage"
+Write-Host "  Master pipeline: pl_olist_end_to_end"
+Write-Host "  Trigger: make azure-olist-full"

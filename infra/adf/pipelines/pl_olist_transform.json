@@ -1,0 +1,43 @@
+{
+  "name": "pl_olist_transform",
+  "properties": {
+    "description": "ADLS landing -> processing parquet + curated customers_RJ (Python Custom Activity on Azure Batch)",
+    "activities": [
+      {
+        "name": "Olist Transform Python",
+        "type": "Custom",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "command": "python workflows/runs/olist_demo.py --mode transform_from_landing",
+          "resourceLinkedService": {
+            "referenceName": "ls_acr_olist",
+            "type": "LinkedServiceReference"
+          },
+          "referenceName": "__TRANSFORM_IMAGE__",
+          "extendedProperties": {
+            "DATA_PLATFORM_ROOT": "/app",
+            "DATA_PLATFORM_APP": "ingestion_azure",
+            "OLIST_LAKE_BACKEND": "adls",
+            "OLIST_PROCESSING_ENGINE": "local",
+            "PLATFORM_ENV": "azure",
+            "AZURE_STORAGE_ACCOUNT": "__AZURE_STORAGE_ACCOUNT__",
+            "AZURE_CLIENT_ID": "__BATCH_POOL_IDENTITY_CLIENT_ID__"
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_batch",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ],
+    "annotations": []
+  }
+}
