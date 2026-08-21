@@ -1,7 +1,7 @@
 .PHONY: help install test lint clean-pycache clean-empty-dirs clean demo dag-validate up down inspect sql-up sql-init sql-down \
 	secrets-init secrets-set secrets-add secrets-decrypt secrets-edit secrets-status secrets-export secrets-build \
 	env-prepare azure-verify-rg azure-verify-storage azure-verify-adf azure-infra-deploy azure-sql-seed \
-	azure-adf-publish azure-adf-deploy azure-transform-image-push azure-adf-trigger azure-olist-full azure-shir-setup azure-olist-transform azure-olist-publish-sql \
+	azure-adf-publish azure-adf-trigger azure-olist-full azure-shir-setup azure-olist-transform azure-olist-publish-sql \
 	olist-spark-catalog olist-publish-sql \
 	azure-oidc-setup azure-oidc-verify azure-oidc-push
 
@@ -12,8 +12,7 @@ help:
 	@echo "Targets: install | test | lint | clean-pycache | clean-empty-dirs | clean | demo | brewery-demo | inspect | up | down"
 	@echo "         sql-up | sql-init | sql-down"
 	@echo "         env-prepare | secrets-* | azure-verify-rg | azure-verify-storage | azure-verify-adf"
-	@echo "         azure-infra-deploy | azure-sql-seed | azure-transform-image-push | azure-adf-publish | azure-adf-deploy"
-	@echo "         azure-adf-trigger | azure-olist-full"
+	@echo "         azure-infra-deploy | azure-sql-seed | azure-adf-publish | azure-adf-trigger | azure-olist-full"
 	@echo "         azure-shir-setup (legacy local SQL) | azure-olist-transform | azure-olist-publish-sql"
 
 
@@ -143,16 +142,6 @@ azure-verify-adf: env-prepare
 azure-adf-publish: env-prepare
 
 	powershell -ExecutionPolicy Bypass -File docker/azure/publish-adf.ps1
-
-
-
-azure-transform-image-push: env-prepare
-
-	powershell -ExecutionPolicy Bypass -File docker/azure/push-transform-image.ps1
-
-
-
-azure-adf-deploy: env-prepare azure-transform-image-push azure-adf-publish
 
 
 

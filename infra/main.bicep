@@ -18,15 +18,6 @@ param dataFactoryName string = ''
 @description('Globally unique Azure SQL server name (auto-generated if empty).')
 param sqlServerName string = ''
 
-@description('Globally unique ACR name (auto-generated if empty).')
-param acrName string = ''
-
-@description('Globally unique Batch account name (auto-generated if empty).')
-param batchAccountName string = ''
-
-@description('Globally unique Batch staging storage name (auto-generated if empty).')
-param batchStorageAccountName string = ''
-
 @description('Azure SQL administrator login.')
 param sqlAdminLogin string = 'olistadmin'
 
@@ -60,18 +51,6 @@ var resolvedDataFactoryName = empty(dataFactoryName)
 var resolvedSqlServerName = empty(sqlServerName)
   ? 'sql-olist${take(uniqueString(subscription().subscriptionId, resourceGroupName, location, 'sql'), 8)}'
   : sqlServerName
-
-var resolvedAcrName = empty(acrName)
-  ? 'acrolist${take(uniqueString(subscription().subscriptionId, resourceGroupName, location, 'acr'), 8)}'
-  : acrName
-
-var resolvedBatchAccountName = empty(batchAccountName)
-  ? 'baolist${take(uniqueString(subscription().subscriptionId, resourceGroupName, location, 'batch'), 8)}'
-  : batchAccountName
-
-var resolvedBatchStorageAccountName = empty(batchStorageAccountName)
-  ? 'stbatch${take(uniqueString(subscription().subscriptionId, resourceGroupName, location, 'bstg'), 10)}'
-  : batchStorageAccountName
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
@@ -113,30 +92,6 @@ module sql 'modules/sql.bicep' = {
   }
 }
 
-module acr 'modules/acr.bicep' = {
-  name: 'acr-olist'
-  scope: rg
-  params: {
-    location: location
-    tags: tags
-    acrName: resolvedAcrName
-  }
-}
-
-module batch 'modules/batch.bicep' = {
-  name: 'batch-olist'
-  scope: rg
-  params: {
-    location: location
-    tags: tags
-    batchAccountName: resolvedBatchAccountName
-    batchStorageAccountName: resolvedBatchStorageAccountName
-    acrLoginServer: acr.outputs.acrLoginServer
-    dataFactoryPrincipalId: datafactory.outputs.dataFactoryPrincipalId
-    lakeStorageAccountId: storage.outputs.storageAccountId
-  }
-}
-
 output resourceGroupName string = rg.name
 output resourceGroupId string = rg.id
 output location string = rg.location
@@ -151,11 +106,3 @@ output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output sqlAdminLogin string = sql.outputs.sqlAdminLogin
 output olistDatabaseName string = sql.outputs.olistDatabaseName
 output olistDwDatabaseName string = sql.outputs.olistDwDatabaseName
-output acrName string = acr.outputs.acrName
-output acrLoginServer string = acr.outputs.acrLoginServer
-output batchAccountName string = batch.outputs.batchAccountName
-output batchAccountUrl string = batch.outputs.batchAccountUrl
-output batchPoolName string = batch.outputs.batchPoolName
-output batchStorageAccountName string = batch.outputs.batchStorageAccountName
-output transformImageName string = batch.outputs.transformImageName
-output batchPoolIdentityClientId string = batch.outputs.batchPoolIdentityClientId

@@ -1,48 +1,294 @@
-{
-  "name": "pl_olist_publish_sql",
-  "properties": {
-    "description": "ADLS -> Azure SQL olist_dw bronze/silver/gold (Python Custom Activity on Azure Batch)",
-    "activities": [
-      {
-        "name": "Olist Publish SQL Python",
-        "type": "Custom",
-        "dependsOn": [],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 1,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": true
-        },
-        "userProperties": [],
-        "typeProperties": {
-          "command": "python workflows/runs/olist_demo.py --mode publish",
-          "resourceLinkedService": {
-            "referenceName": "ls_acr_olist",
-            "type": "LinkedServiceReference"
-          },
-          "referenceName": "__TRANSFORM_IMAGE__",
-          "extendedProperties": {
-            "DATA_PLATFORM_ROOT": "/app",
-            "DATA_PLATFORM_APP": "ingestion_azure",
-            "OLIST_LAKE_BACKEND": "adls",
-            "PLATFORM_ENV": "azure",
-            "AZURE_STORAGE_ACCOUNT": "__AZURE_STORAGE_ACCOUNT__",
-            "AZURE_CLIENT_ID": "__BATCH_POOL_IDENTITY_CLIENT_ID__",
-            "AZURE_SQL_SERVER": "__AZURE_SQL_SERVER__",
-            "AZURE_SQL_ADMIN_LOGIN": "__AZURE_SQL_ADMIN_LOGIN__",
-            "AZURE_SQL_ADMIN_PASSWORD": {
-              "type": "SecureString",
-              "value": "__AZURE_SQL_ADMIN_PASSWORD__"
-            }
-          }
-        },
-        "linkedServiceName": {
-          "referenceName": "ls_azure_batch",
-          "type": "LinkedServiceReference"
-        }
-      }
-    ],
-    "annotations": []
-  }
-}
+{
+  "name": "pl_olist_publish_sql",
+  "properties": {
+    "description": "ADLS -> Azure SQL olist_dw (bronze/silver/gold) via Copy",
+    "parameters": {
+      "tables": {
+        "type": "Array",
+        "defaultValue": [
+          "customers",
+          "geolocation",
+          "order_items",
+          "order_payments",
+          "order_reviews",
+          "orders",
+          "sellers",
+          "product_category_name_translation"
+        ]
+      },
+      "gold_tables": {
+        "type": "Array",
+        "defaultValue": ["customers_RJ"]
+      }
+    },
+    "activities": [
+      {
+        "name": "ForEach Bronze Landing",
+        "type": "ForEach",
+        "dependsOn": [],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@pipeline().parameters.tables",
+            "type": "Expression"
+          },
+          "isSequential": false,
+          "batchCount": 4,
+          "activities": [
+            {
+              "name": "Copy Landing to Bronze",
+              "type": "Copy",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "DelimitedTextSource",
+                  "storeSettings": {
+                    "type": "AzureBlobFSReadSettings",
+                    "recursive": false
+                  },
+                  "formatSettings": {
+                    "type": "DelimitedTextReadSettings"
+                  }
+                },
+                "sink": {
+                  "type": "AzureSqlSink",
+                  "preCopyScript": {
+                    "value": "@concat('IF OBJECT_ID(N''bronze.', item(), ''', N''U'') IS NOT NULL TRUNCATE TABLE bronze.', item())",
+                    "type": "Expression"
+                  },
+                  "writeBehavior": "insert",
+                  "sqlWriterUseTableLock": false,
+                  "tableOption": "autoCreate"
+                },
+                "enableStaging": false,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              },
+              "inputs": [
+                {
+                  "referenceName": "ds_adls_landing_csv",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "fileName": {
+                      "value": "@concat(item(), '.csv')",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "ds_azure_sql_dw_table",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "schemaName": "bronze",
+                    "tableName": {
+                      "value": "@item()",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "ForEach Silver Processing",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "ForEach Bronze Landing",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@pipeline().parameters.tables",
+            "type": "Expression"
+          },
+          "isSequential": false,
+          "batchCount": 4,
+          "activities": [
+            {
+              "name": "Copy Parquet to Silver",
+              "type": "Copy",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "ParquetSource",
+                  "storeSettings": {
+                    "type": "AzureBlobFSReadSettings",
+                    "recursive": false
+                  },
+                  "formatSettings": {
+                    "type": "ParquetReadSettings"
+                  }
+                },
+                "sink": {
+                  "type": "AzureSqlSink",
+                  "preCopyScript": {
+                    "value": "@concat('IF OBJECT_ID(N''silver.', item(), ''', N''U'') IS NOT NULL TRUNCATE TABLE silver.', item())",
+                    "type": "Expression"
+                  },
+                  "writeBehavior": "insert",
+                  "sqlWriterUseTableLock": false,
+                  "tableOption": "autoCreate"
+                },
+                "enableStaging": false,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              },
+              "inputs": [
+                {
+                  "referenceName": "ds_adls_processing_parquet",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "fileName": {
+                      "value": "@concat(item(), '.parquet')",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "ds_azure_sql_dw_table",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "schemaName": "silver",
+                    "tableName": {
+                      "value": "@item()",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "ForEach Gold Curated",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "ForEach Silver Processing",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@pipeline().parameters.gold_tables",
+            "type": "Expression"
+          },
+          "isSequential": false,
+          "batchCount": 2,
+          "activities": [
+            {
+              "name": "Copy Curated to Gold",
+              "type": "Copy",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "DelimitedTextSource",
+                  "storeSettings": {
+                    "type": "AzureBlobFSReadSettings",
+                    "recursive": false
+                  },
+                  "formatSettings": {
+                    "type": "DelimitedTextReadSettings"
+                  }
+                },
+                "sink": {
+                  "type": "AzureSqlSink",
+                  "preCopyScript": {
+                    "value": "@concat('IF OBJECT_ID(N''gold.', item(), ''', N''U'') IS NOT NULL TRUNCATE TABLE gold.', item())",
+                    "type": "Expression"
+                  },
+                  "writeBehavior": "insert",
+                  "sqlWriterUseTableLock": false,
+                  "tableOption": "autoCreate"
+                },
+                "enableStaging": false,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              },
+              "inputs": [
+                {
+                  "referenceName": "ds_adls_curated_csv",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "fileName": {
+                      "value": "@concat(item(), '.csv')",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "ds_azure_sql_dw_table",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "schemaName": "gold",
+                    "tableName": {
+                      "value": "@item()",
+                      "type": "Expression"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": []
+  }
+}
+
