@@ -5,7 +5,7 @@ import pytest
 from dataplatform.config import ConfigLoader
 from dataplatform.data_quality import DataQualityError
 from dataplatform.lake import Layer, LayerPaths
-from ingestion.base import partition_key, partition_path
+from ingestion.base import PartitionedIngestionBase
 from ingestion.brewery import BreweryIngestPipeline, run_ingest_pipeline
 from transformation.brewery import BreweryTransformPipeline, run_dq_gold, run_full_pipeline
 
@@ -22,7 +22,7 @@ def _app_seeds() -> Path:
 
 def test_partition_key():
     row = {"country": "United States", "state": "Ohio"}
-    assert partition_key(row) == ("UNITED STATES", "OHIO")
+    assert PartitionedIngestionBase.partition_key(row) == ("UNITED STATES", "OHIO")
 
 
 def test_partition_path_local(tmp_path, monkeypatch):
@@ -32,7 +32,7 @@ def test_partition_path_local(tmp_path, monkeypatch):
     monkeypatch.setenv("PLATFORM_ENV", "local")
     loader = ConfigLoader(app=PROJECT)
     paths = LayerPaths.from_settings(loader.platform(), loader.app_settings())
-    p = partition_path(
+    p = PartitionedIngestionBase.partition_path(
         Layer.BRONZE,
         country="US",
         state="OH",

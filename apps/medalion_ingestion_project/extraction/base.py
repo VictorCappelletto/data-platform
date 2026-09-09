@@ -11,7 +11,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from base import ProjectProcessBase
+from dataplatform.process_base import ProjectProcessBase
+from utils.settings import bind_medalion_settings
 
 
 class ExtractionError(RuntimeError):
@@ -21,10 +22,9 @@ class ExtractionError(RuntimeError):
 class ExtractionBase(ProjectProcessBase, ABC):
     """Base for extraction-stage jobs (API, fixtures, external sources)."""
 
-    PROCESS = "extraction"
-
     def __init__(self, domain_key: str, environment: str | None = None) -> None:
-        super().__init__(self.PROCESS, domain_key, environment)
+        super().__init__("extraction", domain_key, environment)
+        bind_medalion_settings(self, environment)
 
     def http_session(self, *, retry_attempts: int, api_timeout: int) -> requests.Session:
         session = requests.Session()

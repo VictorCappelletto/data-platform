@@ -1,0 +1,106 @@
+name: azure-infra
+
+on:
+  push:
+    branches: [main, master, publish-main]
+    paths:
+      - "infra/**"
+      - "!infra/agent_book.bicep"
+      - "!infra/modules/openai.bicep"
+      - "!infra/modules/search.bicep"
+      - "!infra/parameters/agent_book.dev.bicepparam"
+      - ".github/workflows/azure-infra.yml"
+      - "docker/azure/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: azure-infra-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RESOURCE_GROUP: rg-olist-dev
+  LOCATION: eastus
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decrypt secrets (SOPS)
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+        run: |
+          if [ -z "$SOPS_AGE_KEY" ]; then
+            echo "SOPS_AGE_KEY not set — using AZURE_SQL_ADMIN_PASSWORD secret fallback"
+            exit 0
+          fi
+          mkdir -p encrypted-secrets
+          printf '%s' "$SOPS_AGE_KEY" > encrypted-secrets/.age-key
+          chmod 600 encrypted-secrets/.age-key
+          docker compose --profile secrets run --rm secrets decrypt
+          docker compose --profile secrets run --rm secrets prepare
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Azure session
+        run: |
+          az account show --query "{subscription:name, id:id, tenant:tenantId}" -o table
+          az group show --name "${{ env.RESOURCE_GROUP }}" \
+            --query "{name:name, location:location, state:properties.provisioningState}" -o table
+
+      - name: What-if (preview changes)
+        run: |
+          az deployment sub what-if \
+            --location "${{ env.LOCATION }}" \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters/dev.bicepparam
+
+      - name: Deploy Bicep
+        env:
+          AZURE_SQL_ADMIN_PASSWORD: ${{ secrets.AZURE_SQL_ADMIN_PASSWORD }}
+        run: |
+          if [ -f .env ]; then
+            PASS=$(grep -E '^AZURE_SQL_ADMIN_PASSWORD=' .env | cut -d= -f2- || true)
+            if [ -z "$PASS" ]; then
+              PASS=$(grep -E '^MSSQL_SA_PASSWORD=' .env | cut -d= -f2- || true)
+            fi
+          fi
+          if [ -z "$PASS" ]; then
+            PASS="$AZURE_SQL_ADMIN_PASSWORD"
+          fi
+          if [ -z "$PASS" ]; then
+            echo "No SQL password: set SOPS_AGE_KEY (preferred) or AZURE_SQL_ADMIN_PASSWORD secret"
+            exit 1
+          fi
+          az deployment sub create \
+            --location "${{ env.LOCATION }}" \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters/dev.bicepparam \
+              sqlAdminPassword="$PASS" \
+            --name "github-${{ github.run_number }}"
+
+      - name: Post-deploy verify
+        run: |
+          az group show --name "${{ env.RESOURCE_GROUP }}" -o json \
+            | jq '{name, location, tags, state: .properties.provisioningState}'
+          STORAGE=$(az deployment sub show --name "github-${{ github.run_number }}" \
+            --query properties.outputs.storageAccountName.value -o tsv)
+          ADF=$(az deployment sub show --name "github-${{ github.run_number }}" \
+            --query properties.outputs.dataFactoryName.value -o tsv)
+          echo "AZURE_STORAGE_ACCOUNT=$STORAGE" >> "$GITHUB_ENV"
+          echo "AZURE_DATA_FACTORY_NAME=$ADF" >> "$GITHUB_ENV"
+          az storage account show --name "$STORAGE" --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "{name:name, hns:isHnsEnabled, sku:sku.name, dfs:primaryEndpoints.dfs}" -o table
+          az storage container list --account-name "$STORAGE" --auth-mode login -o table
+          az datafactory show --name "$ADF" --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "{name:name, location:location, state:provisioningState, mi:identity.principalId}" -o table

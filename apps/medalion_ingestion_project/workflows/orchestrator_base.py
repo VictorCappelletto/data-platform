@@ -6,7 +6,9 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-from runtime import bootstrap
+from dataplatform.bootstrap import bootstrap
+
+APP_ID = "medalion_ingestion_project"
 
 
 def run_task(
@@ -15,7 +17,7 @@ def run_task(
     **kwargs: Any,
 ) -> Any:
     """Bootstrap app context and delegate to domain pipeline code."""
-    bootstrap()
+    bootstrap(APP_ID)
     return domain_fn(**kwargs)
 
 

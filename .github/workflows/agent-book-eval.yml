@@ -1,0 +1,78 @@
+name: agent-book-eval
+
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main, master, publish-main]
+    paths:
+      - "apps/agent_book/**"
+      - ".github/workflows/agent-book-eval.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: agent-book-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RESOURCE_GROUP: rg-olist-dev
+  AGENT_BOOK_EVAL_AZURE: "1"
+  AGENT_BOOK_LLM_PROVIDER: azure_openai
+  PLATFORM_ENV: local
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[dev,agent_book]"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve Azure OpenAI
+        run: |
+          set -euo pipefail
+          ACCOUNT=$(az cognitiveservices account list \
+            --resource-group "${RESOURCE_GROUP}" \
+            --query "[?kind=='OpenAI' && tags.project=='agent_book'].name | [0]" -o tsv)
+          if [ -z "$ACCOUNT" ]; then
+            ACCOUNT=$(az cognitiveservices account list \
+              --resource-group "${RESOURCE_GROUP}" \
+              --query "[?kind=='OpenAI'].name | [0]" -o tsv)
+          fi
+          if [ -z "$ACCOUNT" ]; then
+            echo "No Azure OpenAI account in ${RESOURCE_GROUP}. Deploy infra/agent_book.bicep first."
+            exit 1
+          fi
+          ENDPOINT=$(az cognitiveservices account show \
+            --name "$ACCOUNT" \
+            --resource-group "${RESOURCE_GROUP}" \
+            --query properties.endpoint -o tsv)
+          KEY=$(az cognitiveservices account keys list \
+            --name "$ACCOUNT" \
+            --resource-group "${RESOURCE_GROUP}" \
+            --query key1 -o tsv)
+          echo "::add-mask::${KEY}"
+          echo "Using OpenAI account ${ACCOUNT}"
+          echo "AZURE_OPENAI_ENDPOINT=${ENDPOINT}" >> "$GITHUB_ENV"
+          echo "AZURE_OPENAI_API_KEY=${KEY}" >> "$GITHUB_ENV"
+
+      - name: Golden eval (gpt-5-mini)
+        run: pytest apps/agent_book/tests/test_eval.py::test_golden_eval_azure -q

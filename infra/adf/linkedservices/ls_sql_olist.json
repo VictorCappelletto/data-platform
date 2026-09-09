@@ -1,0 +1,17 @@
+{
+  "name": "ls_sql_olist",
+  "properties": {
+    "annotations": [],
+    "type": "SqlServer",
+    "typeProperties": {
+      "connectionString": {
+        "type": "SecureString",
+        "value": "__SQL_CONNECTION_STRING__"
+      }
+    },
+    "connectVia": {
+      "referenceName": "shir-olist-dev",
+      "type": "IntegrationRuntimeReference"
+    }
+  }
+}

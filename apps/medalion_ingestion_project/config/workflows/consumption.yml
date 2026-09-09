@@ -1,0 +1,12 @@
+dag_id: consumption
+schedule: "@daily"
+catchup: false
+tags: [medallion, analytics, consumption]
+owner: data-platform
+process: consumption
+product: analytics
+orchestration: orchestration/consumption.yml
+
+tasks:
+  - task_id: analytics_export
+    orchestrator: orchestrator.consumption:run_analytics_export

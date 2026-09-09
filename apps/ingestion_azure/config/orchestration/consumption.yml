@@ -1,0 +1,10 @@
+workflow_id: consumption
+dag_config: workflows/consumption.yml
+description: lake → SQL Server olist_dw (bronze / silver / gold)
+domain: olist
+process: consumption
+
+tasks:
+  publish_sql:
+    orchestrator: orchestrator.consumption:run_publish_sql
+    domain_module: consumption.sql_server_publish:run_publish_curated

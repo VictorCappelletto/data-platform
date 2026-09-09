@@ -1,0 +1,24 @@
+workflow_id: agent
+dag_config: workflows/agent.yml
+description: Agent Book Q&A and structured notes from the book
+process: agent
+
+tasks:
+  ask:
+    orchestrator: orchestrator.agent:run_ask
+    domain_module: agent.agent_book:run_ask
+  note:
+    orchestrator: orchestrator.agent:run_note
+    domain_module: agent.agent_book:run_note
+  example:
+    orchestrator: orchestrator.agent:run_example
+    domain_module: agent.agent_book:run_example
+  quote:
+    orchestrator: orchestrator.agent:run_quote
+    domain_module: agent.agent_book:run_quote
+  chat:
+    orchestrator: orchestrator.agent:run_chat
+    domain_module: agent.agent_book:run_chat
+  feedback:
+    orchestrator: orchestrator.agent:run_feedback
+    domain_module: agent.agent_book:run_feedback

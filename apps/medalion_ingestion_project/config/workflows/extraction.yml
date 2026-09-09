@@ -1,0 +1,12 @@
+dag_id: extraction
+schedule: null
+catchup: false
+tags: [medallion, brewery, extraction]
+owner: data-platform
+process: extraction
+product: brewery
+orchestration: orchestration/extraction.yml
+
+tasks:
+  - task_id: brewery_extract
+    orchestrator: orchestrator.extraction:run_brewery_extract

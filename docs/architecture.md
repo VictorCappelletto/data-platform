@@ -26,7 +26,7 @@ Portfolio-ready data platform with:
 | Platform | `config/platform/{env}.yml` | Lake root, secrets, logging |
 | Global constants | `config/constants.yml` | Medallion layer names |
 | App | `apps/<id>/config/app.yml` | App id, lake prefix |
-| Process | `apps/<id>/config/<processo>/config_<processo>.yml` | Domínios por etapa (extraction, ingestion, transformation) |
+| Process | `apps/<id>/config/<processo>/config_<processo>.yml` | Domínios por etapa (extraction, ingestion, transformation, knowledge, agent) |
 | Orchestration | `apps/<id>/config/orchestration/*.yml` | Tabela task → orchestrator → domain module |
 | Workflow | `apps/<id>/config/workflows/*.yml` | Schedule, tasks (`orchestrator:` entry points) |
 | App constants | `apps/<id>/config/constants.yml` | KPI, brewery, pools |
@@ -114,3 +114,14 @@ App-specific overrides live in `apps/<id>/config/app.yml` under `environments:`.
 ## Adding another app
 
 Copy `apps/medalion_ingestion_project/`, update `config/app.yml`, set `DATA_PLATFORM_APP`. No changes to existing apps or global SDK required.
+
+## App: `agent_book`
+
+Q&A e notas sobre *Fundamentos de Engenharia de Dados* (TXT local, fora do git). Mesmo layout de processo; chunks são um dataset no lake.
+
+| Processo | Domínio | Papel |
+|----------|---------|--------|
+| knowledge | book | TXT → bronze chunks; em dev, embedding + Azure AI Search |
+| agent | agent_book | LangGraph: `expand` → `retrieve` → `ask` / `note` / `example` / `uncovered` |
+
+LLM `echo` em local. Azure OpenAI/Search via `AGENT_BOOK_LLM_PROVIDER` / `AGENT_BOOK_SEARCH_PROVIDER` (manter `PLATFORM_ENV=local` para o lake). MCP: `.cursor/mcp.json` expõe `agent_book_ask` / `agent_book_note`.

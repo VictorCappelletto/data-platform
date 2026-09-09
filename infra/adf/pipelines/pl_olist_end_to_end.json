@@ -1,0 +1,67 @@
+{
+  "name": "pl_olist_end_to_end",
+  "properties": {
+    "description": "Master pipeline: landing -> transform -> publish SQL (100% ADF Copy)",
+    "activities": [
+      {
+        "name": "Landing",
+        "type": "ExecutePipeline",
+        "dependsOn": [],
+        "policy": {
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "pl_olist_landing_copy",
+            "type": "PipelineReference"
+          },
+          "waitOnCompletion": true
+        }
+      },
+      {
+        "name": "Transform",
+        "type": "ExecutePipeline",
+        "dependsOn": [
+          {
+            "activity": "Landing",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "pl_olist_transform",
+            "type": "PipelineReference"
+          },
+          "waitOnCompletion": true
+        }
+      },
+      {
+        "name": "Publish SQL",
+        "type": "ExecutePipeline",
+        "dependsOn": [
+          {
+            "activity": "Transform",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "policy": {
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "pl_olist_publish_sql",
+            "type": "PipelineReference"
+          },
+          "waitOnCompletion": true
+        }
+      }
+    ],
+    "annotations": []
+  }
+}

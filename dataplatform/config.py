@@ -17,6 +17,13 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _resolve_lake_root(configured: str, platform_root: Path) -> str:
+    path = Path(configured)
+    if path.is_absolute():
+        return str(path)
+    return str((platform_root / path).resolve())
+
+
 def default_app() -> str | None:
     return os.getenv("DATA_PLATFORM_APP") or os.getenv("DATA_PLATFORM_PROJECT")
 
@@ -134,10 +141,11 @@ class ConfigLoader:
         lake_raw = raw["lake"]
         secrets = raw.get("secrets", {})
         logging_cfg = raw.get("logging", {})
+        lake_root = os.getenv("LAKE_ROOT", lake_raw["root"])
         return PlatformSettings(
             environment=env,
             lake=LakeSettings(
-                root=os.getenv("LAKE_ROOT", lake_raw["root"]),
+                root=_resolve_lake_root(lake_root, self.root),
                 backend=os.getenv("LAKE_BACKEND", lake_raw["backend"]),
                 bucket=os.getenv("LAKE_BUCKET", lake_raw["bucket"]),
             ),

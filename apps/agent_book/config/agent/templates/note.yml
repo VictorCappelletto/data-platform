@@ -1,0 +1,4 @@
+claim: "{{claim}}"
+evidence: "{{evidence}}"
+pages: "{{pages}}"
+topic: "{{topic}}"

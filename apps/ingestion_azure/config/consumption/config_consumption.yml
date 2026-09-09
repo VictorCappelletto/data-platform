@@ -1,0 +1,18 @@
+process: consumption
+
+# SQL Server medallion schemas (Power BI / reporting)
+olist:
+  database: olist_dw
+  sql:
+    identifier_pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    column_type: NVARCHAR(MAX)
+  layers:
+    bronze:
+      lake_zone: landing
+      format: csv
+    silver:
+      lake_zone: processing
+      format: parquet
+    gold:
+      lake_zone: curated
+      format: csv

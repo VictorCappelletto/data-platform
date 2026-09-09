@@ -42,5 +42,11 @@ jobs:
 
       - name: Test
 
-        run: pytest -q
+        run: |
+
+          pytest apps/medalion_ingestion_project/tests -q
+
+          pytest apps/ingestion_azure/tests -q
+
+          pytest apps/agent_book/tests -q
 

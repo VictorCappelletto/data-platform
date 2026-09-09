@@ -1,0 +1,7 @@
+olist:
+  domain: olist
+  source: sql_server
+
+sql:
+  default_schema: dbo
+  batch_size: 1000

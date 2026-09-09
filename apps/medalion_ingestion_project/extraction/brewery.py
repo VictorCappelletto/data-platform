@@ -47,3 +47,7 @@ class BreweryExtractor(ExtractionBase):
         if cfg.use_fixture:
             return self.read_json_fixture(cfg.fixture_path, required_fields=required)
         return self.extract_from_api()
+
+
+def run_extract(**kwargs: Any) -> list[dict[str, Any]]:
+    return BreweryExtractor().extract(fixture_path=kwargs.get("fixture_path"))

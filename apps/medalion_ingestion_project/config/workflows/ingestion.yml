@@ -1,0 +1,20 @@
+dag_id: ingestion
+schedule: "@daily"
+catchup: false
+tags: [medallion, brewery, orders, ingestion]
+owner: data-platform
+process: ingestion
+product: medallion
+orchestration: orchestration/ingestion.yml
+
+tasks:
+  - task_id: brewery_ingest
+    orchestrator: orchestrator.ingestion:run_brewery_ingest
+  - task_id: orders_landing
+    orchestrator: orchestrator.ingestion:run_orders_landing
+  - task_id: orders_bronze
+    orchestrator: orchestrator.ingestion:run_orders_bronze
+    upstream: [orders_landing]
+  - task_id: orders_silver
+    orchestrator: orchestrator.ingestion:run_orders_silver
+    upstream: [orders_bronze]

@@ -4,22 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from dataplatform.config import ConfigLoader
 from ingestion.brewery import BreweryIngestPipeline
-from runtime import APP_ID
 from transformation.base import PartitionedTransformationBase
 
 
 class BreweryTransformPipeline(PartitionedTransformationBase):
     def __init__(self, environment: str | None = None) -> None:
-        loader = ConfigLoader(app=APP_ID)
-        ingestion_cfg = loader.process("ingestion", environment).get("brewery", {})
-        super().__init__(
-            "brewery",
-            environment,
-            ingestion_domain=ingestion_cfg.get("domain", "brewery"),
-            ingestion_table=ingestion_cfg.get("table", "breweries"),
-        )
+        super().__init__("brewery", environment)
+        ingestion_cfg = self.loader.process("ingestion", environment).get("brewery", {})
+        self._domain = ingestion_cfg.get("domain", "brewery")
+        self._table = ingestion_cfg.get("table", "breweries")
 
     def transform(self, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return rows

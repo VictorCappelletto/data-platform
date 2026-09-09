@@ -1,0 +1,28 @@
+{
+  "name": "ds_adls_processing_parquet",
+  "properties": {
+    "linkedServiceName": {
+      "referenceName": "ls_adls_olist",
+      "type": "LinkedServiceReference"
+    },
+    "parameters": {
+      "fileName": {
+        "type": "String"
+      }
+    },
+    "annotations": [],
+    "type": "Parquet",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "processing",
+        "fileName": {
+          "value": "@dataset().fileName",
+          "type": "Expression"
+        }
+      },
+      "compressionCodec": "snappy"
+    },
+    "schema": []
+  }
+}

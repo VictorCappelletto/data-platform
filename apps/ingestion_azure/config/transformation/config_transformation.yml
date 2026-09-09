@@ -1,0 +1,21 @@
+process: transformation
+
+# Mirrors Databricks notebook: customers_db + 8 Olist datasets
+olist:
+  database: customers_db
+  tables:
+    - customers
+    - geolocation
+    - order_items
+    - order_payments
+    - order_reviews
+    - orders
+    - sellers
+    - product_category_name_translation
+  filters:
+    customers:
+      - output: customers_RJ
+        column: customer_state
+        value: RJ
+  processing:
+    engine: local  # local | spark — override with OLIST_PROCESSING_ENGINE

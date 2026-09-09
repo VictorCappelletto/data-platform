@@ -17,14 +17,25 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Stray scaffolds at repo root (real seeds live under apps/*/seeds/)
+/seeds/
+/configs/
+/dags/
+/scripts/
+/src/
+
 # Data / lake local
 data/lake/
 *.parquet
 !apps/*/seeds/**
+apps/agent_book/seeds/*.pdf
+apps/agent_book/seeds/*.txt
 
 # Spark / Airflow
 spark-warehouse/
 metastore_db/
+docker/spark/hadoop/bin/winutils.exe
+docker/spark/hadoop/bin/hadoop.dll
 airflow/logs/
 airflow/airflow.db
 logs/
@@ -36,7 +47,11 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 
-# Secrets never commit (encrypted/runtime only — not platform source code)
-encrypted-secrets/
+# Secrets — never commit private key or decrypted/plain pending files
+.sops.yaml
+encrypted-secrets/.age-key
+encrypted-secrets/*.pending
+config/env/secrets.pending.env
+config/azure/oidc.generated.env
 *.pem
 *.key

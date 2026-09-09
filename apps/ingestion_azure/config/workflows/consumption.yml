@@ -1,0 +1,12 @@
+dag_id: consumption
+schedule: null
+catchup: false
+tags: [olist, azure, consumption]
+owner: data-platform
+process: consumption
+product: olist
+orchestration: orchestration/consumption.yml
+
+tasks:
+  - task_id: publish_sql
+    orchestrator: orchestrator.consumption:run_publish_sql

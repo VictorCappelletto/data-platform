@@ -1,0 +1,33 @@
+cases:
+  - id: lifecycle
+    task: ask
+    query: O que e o ciclo de vida da engenharia de dados?
+    covered: true
+    pages: [1]
+    terms: [ciclo, geracao]
+    cite_pages: true
+  - id: warehouse
+    task: ask
+    query: data warehouse
+    covered: true
+    pages: [2]
+    terms: [warehouse]
+    cite_pages: true
+  - id: medallion
+    task: ask
+    query: arquitetura medallion
+    covered: true
+    pages: [3]
+    terms: [medallion, bronze]
+    cite_pages: true
+  - id: uncovered
+    task: ask
+    query: How do quantum qubits teleport beer recipes?
+    covered: false
+    pages: []
+  - id: quote_warehouse
+    task: quote
+    query: data warehouse
+    covered: true
+    pages: [2]
+    terms: [warehouse]
