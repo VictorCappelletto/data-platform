@@ -58,17 +58,11 @@ jobs:
           az group show --name "${{ env.RESOURCE_GROUP }}" \
             --query "{name:name, location:location, state:properties.provisioningState}" -o table
 
-      - name: What-if (preview changes)
-        run: |
-          az deployment sub what-if \
-            --location "${{ env.LOCATION }}" \
-            --template-file infra/main.bicep \
-            --parameters infra/parameters/dev.bicepparam
-
-      - name: Deploy Bicep
+      - name: Resolve SQL admin password
         env:
           AZURE_SQL_ADMIN_PASSWORD: ${{ secrets.AZURE_SQL_ADMIN_PASSWORD }}
         run: |
+          PASS=""
           if [ -f .env ]; then
             PASS=$(grep -E '^AZURE_SQL_ADMIN_PASSWORD=' .env | cut -d= -f2- || true)
             if [ -z "$PASS" ]; then
@@ -82,11 +76,24 @@ jobs:
             echo "No SQL password: set SOPS_AGE_KEY (preferred) or AZURE_SQL_ADMIN_PASSWORD secret"
             exit 1
           fi
+          echo "::add-mask::$PASS"
+          echo "SQL_ADMIN_PASSWORD=$PASS" >> "$GITHUB_ENV"
+
+      - name: What-if (preview changes)
+        run: |
+          az deployment sub what-if \
+            --location "${{ env.LOCATION }}" \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters/dev.bicepparam \
+              sqlAdminPassword="$SQL_ADMIN_PASSWORD"
+
+      - name: Deploy Bicep
+        run: |
           az deployment sub create \
             --location "${{ env.LOCATION }}" \
             --template-file infra/main.bicep \
             --parameters infra/parameters/dev.bicepparam \
-              sqlAdminPassword="$PASS" \
+              sqlAdminPassword="$SQL_ADMIN_PASSWORD" \
             --name "github-${{ github.run_number }}"
 
       - name: Post-deploy verify
