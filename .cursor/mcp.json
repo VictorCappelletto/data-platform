@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "agent_book": {
+      "type": "stdio",
+      "command": "py",
+      "args": ["-3", "apps/agent_book/mcp_server/server.py"],
+      "timeout": 180000,
+      "envFile": ".env",
+      "env": {
+        "PLATFORM_ENV": "local",
+        "DATA_PLATFORM_APP": "agent_book",
+        "AGENT_BOOK_SEARCH_PROVIDER": "local",
+        "AGENT_BOOK_LLM_PROVIDER": "azure_openai",
+        "AGENT_BOOK_MCP_REV": "timeout-local-search"
+      }
+    }
+  }
+}

@@ -1,10 +1,10 @@
-# Trigger ADF landing copy pipeline and wait for completion.
+# Trigger ADF pipeline and wait for completion.
 param(
     [string]$ResourceGroup = "rg-olist-dev",
     [string]$FactoryName = "",
-    [string]$PipelineName = "pl_olist_landing_copy",
+    [string]$PipelineName = "pl_olist_end_to_end",
     [string]$EnvFile = ".env",
-    [int]$TimeoutMinutes = 30
+    [int]$TimeoutMinutes = 45
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,7 +40,7 @@ Write-Host "  Monitor: https://adf.azure.com/en/authoring/pipeline/$PipelineName
 
 $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
 do {
-    Start-Sleep -Seconds 10
+    Start-Sleep -Seconds 15
     $status = az datafactory pipeline-run show `
         --resource-group $ResourceGroup `
         --factory-name $FactoryName `
@@ -54,4 +54,4 @@ if ($status -ne "Succeeded") {
 }
 
 Write-Host ""
-Write-Host "Landing copy succeeded. Check ADLS container landing/ for CSV files."
+Write-Host "Pipeline $PipelineName succeeded."

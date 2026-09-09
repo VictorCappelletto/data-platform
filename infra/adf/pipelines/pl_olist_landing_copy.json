@@ -1,7 +1,7 @@
 {
   "name": "pl_olist_landing_copy",
   "properties": {
-    "description": "SQL Server (Olist) -> ADLS landing CSV — mirrors landing_export.py",
+    "description": "Azure SQL (olist) -> ADLS landing CSV — 8 tables",
     "parameters": {
       "tables": {
         "type": "Array",
@@ -45,7 +45,7 @@
               "userProperties": [],
               "typeProperties": {
                 "source": {
-                  "type": "SqlSource",
+                  "type": "AzureSqlSource",
                   "sqlReaderQuery": {
                     "value": "@concat('SELECT * FROM dbo.', item())",
                     "type": "Expression"
@@ -75,7 +75,7 @@
               },
               "inputs": [
                 {
-                  "referenceName": "ds_sql_olist_table",
+                  "referenceName": "ds_azure_sql_olist_table",
                   "type": "DatasetReference",
                   "parameters": {
                     "tableName": {

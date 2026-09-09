@@ -42,17 +42,37 @@ $scripts = @(
 
 Write-Host "Seeding Azure SQL: $server"
 
+function Invoke-AzureSqlScript {
+    param(
+        [string]$Path,
+        [string]$Database
+    )
+    # Azure SQL does not support USE; databases are created by Bicep deploy.
+    $content = Get-Content $Path -Raw
+    $content = $content -replace '(?s)IF DB_ID\(N''[^'']+''\) IS NULL\s*BEGIN\s*CREATE DATABASE [^;]+;\s*END\s*GO\s*', ''
+    $content = $content -replace '(?m)^USE\s+\w+\s*;\s*\r?\nGO\s*\r?\n', ''
+
+    $tempFile = Join-Path $env:TEMP ("azure-sql-" + [guid]::NewGuid().ToString() + ".sql")
+    Set-Content -Path $tempFile -Value $content -Encoding utf8
+    try {
+        sqlcmd -S $server -U $login -P $password -C -d $Database -i $tempFile
+        if ($LASTEXITCODE -ne 0) {
+            throw "sqlcmd failed (exit $LASTEXITCODE)"
+        }
+    } finally {
+        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 foreach ($script in $scripts) {
     $path = Join-Path $sqlInit $script
     if (-not (Test-Path $path)) {
         Write-Host "  SKIP missing $script"
         continue
     }
-    Write-Host "  Running $script ..."
-    sqlcmd -S $server -U $login -P $password -C -i $path
-    if ($LASTEXITCODE -ne 0) {
-        throw "sqlcmd failed on $script (exit $LASTEXITCODE)"
-    }
+    $database = if ($script -eq "04_create_olist_dw.sql") { "olist_dw" } else { "olist" }
+    Write-Host "  Running $script on $database ..."
+    Invoke-AzureSqlScript -Path $path -Database $database
 }
 
 Write-Host "Azure SQL seed complete."

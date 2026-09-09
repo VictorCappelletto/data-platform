@@ -52,6 +52,7 @@ htmlcov/
 encrypted-secrets/.age-key
 encrypted-secrets/*.pending
 config/env/secrets.pending.env
+config/env/secrets.bootstrap.env
 config/azure/oidc.generated.env
 *.pem
 *.key

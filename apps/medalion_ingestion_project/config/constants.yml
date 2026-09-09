@@ -17,6 +17,11 @@ brewery:
     - name
     - brewery_type
 
+seeds:
+  bulk:
+    orders: seeds/orders_bulk.csv
+    brewery: seeds/breweries_bulk.json
+
 pools:
   brewery_pool:
     slots: 2

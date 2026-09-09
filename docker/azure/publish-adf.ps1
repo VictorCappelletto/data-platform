@@ -124,8 +124,16 @@ Get-ChildItem (Join-Path $AdfRoot "datasets") -Filter "*.json" | ForEach-Object 
     Publish-AdfResource -Kind dataset -Name $artifact.name -Properties $artifact.properties
 }
 
-Get-ChildItem (Join-Path $AdfRoot "pipelines") -Filter "*.json" | ForEach-Object {
-    $artifact = Read-JsonArtifact $_.FullName
+$pipelineOrder = @(
+    "pl_olist_landing_copy.json",
+    "pl_olist_transform.json",
+    "pl_olist_publish_sql.json",
+    "pl_olist_end_to_end.json"
+)
+foreach ($fileName in $pipelineOrder) {
+    $path = Join-Path (Join-Path $AdfRoot "pipelines") $fileName
+    if (-not (Test-Path $path)) { continue }
+    $artifact = Read-JsonArtifact $path
     Publish-AdfResource -Kind pipeline -Name $artifact.name -Properties $artifact.properties
 }
 

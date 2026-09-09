@@ -83,6 +83,7 @@ class PartitionedTransformationBase(TransformationBase):
     load_date = staticmethod(PartitionedIngestionBase.load_date)
     partition_key = staticmethod(PartitionedIngestionBase.partition_key)
     partition_path = staticmethod(PartitionedIngestionBase.partition_path)
+    _current_load_dt: str | None = None
 
     def __init__(
         self,
@@ -171,6 +172,7 @@ class PartitionedTransformationBase(TransformationBase):
 
     def run_dq_gold(self, *, load_dt: str | None = None) -> list[dict[str, Any]]:
         load_dt = load_dt or self.load_date()
+        self._current_load_dt = load_dt
         silver = self.read_layer_partitions(Layer.SILVER, load_dt)
         self.run_dq_checks(silver)
         gold = self.transform(silver)

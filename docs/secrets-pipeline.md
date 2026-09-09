@@ -57,9 +57,26 @@ Exemplos:
 
 ```powershell
 make secrets-set MSSQL_SA_PASSWORD=Olist@Dev123!
+make secrets-set AZURE_SQL_ADMIN_PASSWORD=Olist@Dev123!
 make secrets-set AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=..."
 make secrets-status
 ```
+
+### Azure SQL + ADF
+
+A senha do Azure SQL **não vai no Bicep em plaintext no repo** — fica encriptada no store:
+
+```powershell
+make env-prepare                                    # bootstrap + decrypt → .env
+make secrets-set AZURE_SQL_ADMIN_PASSWORD='...'   # ou secrets-add
+make azure-infra-deploy                           # lê .env decriptado
+make azure-adf-publish                            # connection string ADF
+```
+
+Portfolio: pode usar a **mesma senha** que `MSSQL_SA_PASSWORD` (já no bootstrap).  
+Scripts aceitam `AZURE_SQL_ADMIN_PASSWORD` ou fallback `MSSQL_SA_PASSWORD`.
+
+CI: secret GitHub `SOPS_AGE_KEY` → `make secrets-decrypt` → deploy (ver [azure-infra.yml](../.github/workflows/azure-infra.yml)).
 
 ## Uso com Docker Compose
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceGroupName": { "value": "rg-olist-dev" },
+    "location": { "value": "eastus" },
+    "sqlLocation": { "value": "brazilsouth" },
+    "storageAccountName": { "value": "stolistb3mellxazzrma" },
+    "dataFactoryName": { "value": "adf-olisthfh5ri63" },
+    "sqlServerName": { "value": "sql-olistdevbr001" },
+    "sqlAdminLogin": { "value": "olistadmin" },
+    "sqlAdminPassword": { "value": "__SQL_ADMIN_PASSWORD__" },
+    "containerNames": {
+      "value": ["landing", "processing", "curated"]
+    }
+  }
+}

@@ -34,6 +34,10 @@ if (-not (Test-Path $EnvFile)) {
 $content = if (Test-Path $EnvFile) { Get-Content $EnvFile -Raw } else { "" }
 foreach ($key in $vars.Keys) {
     $value = $vars[$key]
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        Write-Host "  skip $key (empty output)"
+        continue
+    }
     if ($content -match "(?m)^$key=.*") {
         $content = $content -replace "(?m)^$key=.*", "$key=$value"
     } else {
