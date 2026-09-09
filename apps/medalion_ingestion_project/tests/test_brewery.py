@@ -50,6 +50,37 @@ def test_transform_truncates():
     assert rows[0]["longitude"] is None
 
 
+def test_gold_transform_enriches_fields(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_PLATFORM_ROOT", str(_repo()))
+    monkeypatch.setenv("DATA_PLATFORM_APP", PROJECT)
+    monkeypatch.setenv("LAKE_ROOT", str(tmp_path))
+    monkeypatch.setenv("PLATFORM_ENV", "local")
+    pipeline = BreweryTransformPipeline()
+    pipeline._current_load_dt = "2026-08-12"
+    gold = pipeline.transform(
+        [
+            {
+                "id": "1",
+                "name": "MadTree Brewing",
+                "brewery_type": "regional",
+                "country": "United States",
+                "state": "Ohio",
+                "city": "Cincinnati",
+                "latitude": 39.1,
+                "longitude": -84.4,
+                "website_url": "http://www.madtreebrewing.com",
+                "phone": "5138368733",
+            }
+        ]
+    )
+    row = gold[0]
+    assert row["load_date"] == "2026-08-12"
+    assert row["country_code"] == "US"
+    assert row["state_code"] == "OH"
+    assert row["has_coordinates"] is True
+    assert row["is_craft"] is False
+
+
 def test_duplicate_ids_fail():
     rows = [{"id": "a"}, {"id": "a"}]
     assert BreweryTransformPipeline().duplicate_ids(rows).passed is False

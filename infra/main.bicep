@@ -9,6 +9,9 @@ param resourceGroupName string = 'rg-olist-dev'
 @description('Primary region (eastus = lower cost for portfolio workloads).')
 param location string = 'eastus'
 
+@description('Azure SQL region (use eastus2 if eastus SQL provisioning is restricted on the subscription).')
+param sqlLocation string = 'eastus2'
+
 @description('Globally unique storage account name (auto-generated if empty).')
 param storageAccountName string = ''
 
@@ -84,7 +87,7 @@ module sql 'modules/sql.bicep' = {
   name: 'sql-olist'
   scope: rg
   params: {
-    location: location
+    location: sqlLocation
     tags: tags
     sqlServerName: resolvedSqlServerName
     sqlAdminLogin: sqlAdminLogin
