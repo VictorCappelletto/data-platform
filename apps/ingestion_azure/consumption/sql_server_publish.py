@@ -21,7 +21,8 @@ class SqlServerPublisher(ConsumptionBase):
     def __init__(self, domain_key: str = "olist", environment: str | None = None) -> None:
         super().__init__(domain_key, environment)
         sql_cfg = self.product_config.get("sql", {})
-        self._ident_pattern = re.compile(sql_cfg.get("identifier_pattern", r"^[A-Za-z_][A-Za-z0-9_]*$"))
+        ident_pattern = sql_cfg.get("identifier_pattern", r"^[A-Za-z_][A-Za-z0-9_]*$")
+        self._ident_pattern = re.compile(ident_pattern)
         self._column_sql_type = sql_cfg.get("column_type", "NVARCHAR(MAX)")
         transform_cfg = self.loader.process("transformation", environment)
         self.transform_config = transform_cfg.get(domain_key, {})
@@ -90,7 +91,8 @@ class SqlServerPublisher(ConsumptionBase):
             )
             columns = list(rows[0].keys())
             col_defs = ", ".join(f"[{col}] {self._column_sql_type} NULL" for col in columns)
-            cur.execute(f"IF OBJECT_ID(N'{layer}.{table}', N'U') IS NOT NULL DROP TABLE {qualified};")
+            drop_sql = f"IF OBJECT_ID(N'{layer}.{table}', N'U') IS NOT NULL DROP TABLE {qualified};"
+            cur.execute(drop_sql)
             cur.execute(f"CREATE TABLE {qualified} ({col_defs});")
             col_list = ", ".join(f"[{col}]" for col in columns)
             placeholders = ", ".join("?" for _ in columns)

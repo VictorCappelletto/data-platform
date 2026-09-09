@@ -5,6 +5,10 @@ on:
     branches: [main, master, publish-main]
     paths:
       - "infra/**"
+      - "!infra/agent_book.bicep"
+      - "!infra/modules/openai.bicep"
+      - "!infra/modules/search.bicep"
+      - "!infra/parameters/agent_book.dev.bicepparam"
       - ".github/workflows/azure-infra.yml"
       - "docker/azure/**"
   workflow_dispatch:

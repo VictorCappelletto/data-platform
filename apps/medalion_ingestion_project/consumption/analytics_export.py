@@ -38,7 +38,11 @@ class AnalyticsExportPipeline(ConsumptionBase):
         results = [null_rate(gold, col, max_rate=0.0) for col in dq_cfg["null_columns"]]
         results.append(range_check(gold, "kpi_value", min_value=dq_cfg["min_value"]))
         results.append(
-            volume_vs_baseline(len(gold), kpi_cfg["baseline_count"], max_variance_pct=kpi_cfg["max_variance_pct"])
+            volume_vs_baseline(
+                len(gold),
+                kpi_cfg["baseline_count"],
+                max_variance_pct=kpi_cfg["max_variance_pct"],
+            )
         )
         run_checks(results)
         export_rows = self.transform(gold)

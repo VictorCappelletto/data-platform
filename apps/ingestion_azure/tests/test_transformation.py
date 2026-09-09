@@ -1,7 +1,6 @@
 """Tests for Olist transformation (Databricks notebook port)."""
 
 from dataplatform.config import ConfigLoader
-
 from transformation.io import OlistLakeMount
 from transformation.olist import OlistTransformPipeline
 

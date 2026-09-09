@@ -41,7 +41,9 @@ class OrdersIngestPipeline(IngestionBase):
 
 
 def run_landing(**_kwargs: Any) -> str:
-    logger.warning("ingestion.orders.run_landing is legacy; use orchestrator.extraction.run_landing_export")
+    logger.warning(
+        "ingestion.orders.run_landing is legacy; use orchestrator.extraction.run_landing_export"
+    )
     from ingestion.landing_export import run_landing_export
 
     counts = run_landing_export()
@@ -49,7 +51,9 @@ def run_landing(**_kwargs: Any) -> str:
 
 
 def run_pipeline(**_kwargs: Any) -> dict[str, Any]:
-    logger.warning("ingestion.orders.run_pipeline is legacy; use workflows.runs.olist_demo.run_full")
+    logger.warning(
+        "ingestion.orders.run_pipeline is legacy; use workflows.runs.olist_demo.run_full"
+    )
     from workflows.runs.olist_demo import run_full
 
     return run_full(**_kwargs)

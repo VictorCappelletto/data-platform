@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ingestion.orders import run_pipeline
 from consumption.analytics_export import run_export
+from ingestion.orders import run_pipeline
 from transformation.kpi import run_kpi_pipeline
 
 PROJECT = "medalion_ingestion_project"

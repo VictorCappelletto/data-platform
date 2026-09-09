@@ -1,13 +1,4 @@
-import pytest
-
-from pathlib import Path
-
-from dataplatform.config import ConfigLoader
-from dataplatform.lake import Layer, LayerPaths
-from dataplatform.utils import SecretNotFoundError, get_secret
-from utils.settings import load_app_settings
-
-APP = "medalion_ingestion_project"
+from pathlib import Pathimport pytestfrom dataplatform.config import ConfigLoaderfrom dataplatform.lake import Layer, LayerPathsfrom dataplatform.utils import SecretNotFoundError, get_secretfrom utils.settings import load_app_settingsAPP = "medalion_ingestion_project"
 
 
 def test_layer_paths_local():

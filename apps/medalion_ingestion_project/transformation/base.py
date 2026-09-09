@@ -7,7 +7,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from dataplatform.process_base import ProjectProcessBase
 from dataplatform.data_quality import (
     CheckResult,
     null_rate,
@@ -16,6 +15,7 @@ from dataplatform.data_quality import (
     volume_vs_baseline,
 )
 from dataplatform.lake import Layer
+from dataplatform.process_base import ProjectProcessBase
 from ingestion.base import PartitionedIngestionBase
 from utils.settings import bind_medalion_settings
 

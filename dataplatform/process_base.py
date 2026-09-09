@@ -13,7 +13,9 @@ class ProjectProcessBase:
     def __init__(self, process: str, domain_key: str, environment: str | None = None) -> None:
         loader = ConfigLoader()
         if not loader.app:
-            raise ValueError("DATA_PLATFORM_APP required — call dataplatform.bootstrap.bootstrap() first")
+            raise ValueError(
+                "DATA_PLATFORM_APP required — call dataplatform.bootstrap.bootstrap() first"
+            )
         self.process_name = process
         self.domain_key = domain_key
         self.product_name = f"{process}:{domain_key}"

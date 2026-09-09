@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+
 def _repo_root() -> Path:
     from dataplatform.config import repo_root
 

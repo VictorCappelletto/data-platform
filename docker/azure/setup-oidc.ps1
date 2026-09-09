@@ -56,30 +56,57 @@ if ([string]::IsNullOrWhiteSpace($sp)) {
     Write-Host "Service principal exists"
 }
 
-$fcNamePrefix = "github-data-platform"
-foreach ($branch in $GitHubBranches) {
-    $subject = "repo:${GitHubRepo}:ref:refs/heads/$branch"
-    $fcName = "$fcNamePrefix-$($branch -replace '[^a-zA-Z0-9-]','-')"
-    Write-Host "Federated credential: $subject"
-
-    $existingFc = az ad app federated-credential list --id $appId --query "[?subject=='$subject'].name" -o tsv 2>$null
-    if ([string]::IsNullOrWhiteSpace($existingFc)) {
-        $fcPath = Join-Path $env:TEMP "github-oidc-$fcName.json"
-        @"
+function Add-FederatedCredential {
+    param([string]$Name, [string]$Subject, [string]$Description)
+    Write-Host "Federated credential: $Subject"
+    $existingFc = az ad app federated-credential list --id $appId --query "[?subject=='$Subject'].name" -o tsv 2>$null
+    if (-not [string]::IsNullOrWhiteSpace($existingFc)) {
+        Write-Host "  exists: $existingFc"
+        return
+    }
+    $fcPath = Join-Path $env:TEMP "github-oidc-$Name.json"
+    @"
 {
-  "name": "$fcName",
+  "name": "$Name",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "$subject",
-  "description": "GitHub Actions OIDC — $branch",
+  "subject": "$Subject",
+  "description": "$Description",
   "audiences": ["api://AzureADTokenExchange"]
 }
 "@ | Set-Content -Path $fcPath -Encoding utf8
-        az ad app federated-credential create --id $appId --parameters "@$fcPath" | Out-Null
-        Remove-Item $fcPath -Force -ErrorAction SilentlyContinue
-        Write-Host "  created: $fcName"
-    } else {
-        Write-Host "  exists: $existingFc"
+    az ad app federated-credential create --id $appId --parameters "@$fcPath" | Out-Null
+    Remove-Item $fcPath -Force -ErrorAction SilentlyContinue
+    Write-Host "  created: $Name"
+}
+
+$ownerLogin, $repoName = $GitHubRepo.Split("/")
+$ownerId = $null
+$repoId = $null
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+    $meta = gh api "repos/$GitHubRepo" --jq "{owner:.owner.id, repo:.id}" | ConvertFrom-Json
+    $ownerId = $meta.owner
+    $repoId = $meta.repo
+}
+
+$fcNamePrefix = "github-data-platform"
+foreach ($branch in $GitHubBranches) {
+    $safe = $branch -replace '[^a-zA-Z0-9-]','-'
+    Add-FederatedCredential `
+        -Name "$fcNamePrefix-$safe" `
+        -Subject "repo:${GitHubRepo}:ref:refs/heads/$branch" `
+        -Description "GitHub Actions OIDC — $branch"
+    if ($ownerId -and $repoId) {
+        Add-FederatedCredential `
+            -Name "$fcNamePrefix-$safe-ids" `
+            -Subject "repo:${ownerLogin}@${ownerId}/${repoName}@${repoId}:ref:refs/heads/$branch" `
+            -Description "GitHub Actions OIDC — $branch (repo IDs)"
     }
+}
+if ($ownerId -and $repoId) {
+    Add-FederatedCredential `
+        -Name "$fcNamePrefix-pull-request-ids" `
+        -Subject "repo:${ownerLogin}@${ownerId}/${repoName}@${repoId}:pull_request" `
+        -Description "GitHub Actions OIDC — pull_request (repo IDs)"
 }
 
 $primaryBranch = $GitHubBranches[0]

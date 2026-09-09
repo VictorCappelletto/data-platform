@@ -5,8 +5,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from dataplatform.process_base import ProjectProcessBase
 from dataplatform.lake import Layer
+from dataplatform.process_base import ProjectProcessBase
 from extraction.base import SqlExtractionBase
 from utils.settings import bind_azure_settings
 

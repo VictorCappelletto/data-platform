@@ -115,10 +115,14 @@ class OlistLakeMount:
             credential=credential,
         )
 
+    def _file_client(self, account: str, container: str, blob: str):
+        fs = self._adls_client(account).get_file_system_client(container)
+        return fs.get_file_client(blob)
+
     def read_csv(self, path: str) -> list[dict[str, Any]]:
         if self._is_adls(path):
             account, container, blob = self._parse_abfss(path)
-            client = self._adls_client(account).get_file_system_client(container).get_file_client(blob)
+            client = self._file_client(account, container, blob)
             text = client.download_file().readall().decode("utf-8-sig")
             return list(csv.DictReader(io.StringIO(text)))
         with Path(path).open(encoding="utf-8", newline="") as fh:
@@ -133,7 +137,7 @@ class OlistLakeMount:
             writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
             writer.writeheader()
             writer.writerows(rows)
-            file_client = self._adls_client(account).get_file_system_client(container).get_file_client(blob)
+            file_client = self._file_client(account, container, blob)
             file_client.upload_data(buf.getvalue().encode("utf-8"), overwrite=True)
             return path
         from dataplatform.paths import ensure_write_parent
@@ -159,7 +163,7 @@ class OlistLakeMount:
             account, container, blob = self._parse_abfss(path)
             buf = io.BytesIO()
             pq.write_table(pa.Table.from_pylist(rows), buf)
-            file_client = self._adls_client(account).get_file_system_client(container).get_file_client(blob)
+            file_client = self._file_client(account, container, blob)
             file_client.upload_data(buf.getvalue(), overwrite=True)
             return path
         from dataplatform.paths import ensure_write_parent
@@ -177,7 +181,7 @@ class OlistLakeMount:
             ) from exc
         if self._is_adls(path):
             account, container, blob = self._parse_abfss(path)
-            client = self._adls_client(account).get_file_system_client(container).get_file_client(blob)
+            client = self._file_client(account, container, blob)
             data = client.download_file().readall()
             return pq.read_table(io.BytesIO(data)).to_pylist()
         return pq.read_table(path).to_pylist()
@@ -284,4 +288,8 @@ def ensure_winutils_chmod(path: str) -> None:
     configure_hadoop_windows()
     winutils = Path(os.environ["HADOOP_HOME"]) / "bin" / "winutils.exe"
     if winutils.is_file():
-        subprocess.run([str(winutils), "chmod", "-R", "777", path], check=False, capture_output=True)
+        subprocess.run(
+            [str(winutils), "chmod", "-R", "777", path],
+            check=False,
+            capture_output=True,
+        )
