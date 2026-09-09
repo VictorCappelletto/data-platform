@@ -28,6 +28,8 @@ Thumbs.db
 data/lake/
 *.parquet
 !apps/*/seeds/**
+apps/agent_book/seeds/*.pdf
+apps/agent_book/seeds/*.txt
 
 # Spark / Airflow
 spark-warehouse/

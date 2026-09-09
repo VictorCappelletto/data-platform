@@ -1,0 +1,9 @@
+workflow_id: knowledge
+dag_config: workflows/knowledge.yml
+description: Ingest the book TXT into the Agent Book knowledge lake
+process: knowledge
+
+tasks:
+  ingest_book:
+    orchestrator: orchestrator.knowledge:run_ingest_book
+    domain_module: knowledge.ingest:run_ingest

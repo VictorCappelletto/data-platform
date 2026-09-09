@@ -3,7 +3,8 @@
 	env-prepare azure-verify-rg azure-verify-storage azure-verify-adf azure-infra-deploy azure-sql-seed \
 	azure-adf-publish azure-adf-trigger azure-olist-full azure-shir-setup azure-olist-transform azure-olist-publish-sql \
 	olist-spark-catalog olist-publish-sql \
-	azure-oidc-setup azure-oidc-verify azure-oidc-push
+	azure-oidc-setup azure-oidc-verify azure-oidc-push \
+	agent_book-ingest agent_book-ask agent_book-note agent_book-example agent_book-quote agent_book-chat agent_book-feedback agent_book-eval
 
 
 
@@ -14,6 +15,7 @@ help:
 	@echo "         env-prepare | secrets-* | azure-verify-rg | azure-verify-storage | azure-verify-adf"
 	@echo "         azure-infra-deploy | azure-sql-seed | azure-adf-publish | azure-adf-trigger | azure-olist-full"
 	@echo "         azure-shir-setup (legacy local SQL) | azure-olist-transform | azure-olist-publish-sql"
+	@echo "         agent_book-ingest | agent_book-ask | agent_book-note | agent_book-example | agent_book-quote | agent_book-chat | agent_book-feedback | agent_book-eval"
 
 
 
@@ -47,6 +49,8 @@ test: clean
 
 	pytest apps/ingestion_azure/tests -q
 
+	pytest apps/agent_book/tests -q
+
 
 
 lint:
@@ -76,6 +80,54 @@ brewery-demo:
 brewery-demo-bulk:
 
 	python apps/medalion_ingestion_project/workflows/runs/medalion_demo.py --mode brewery_full --bulk
+
+
+
+agent_book-ingest:
+
+	python apps/agent_book/workflows/runs/ingest.py
+
+
+
+agent_book-ask:
+
+	python apps/agent_book/workflows/runs/agent.py ask --question "$(QUESTION)"
+
+
+
+agent_book-note:
+
+	python apps/agent_book/workflows/runs/agent.py note --topic "$(TOPIC)"
+
+
+
+agent_book-example:
+
+	python apps/agent_book/workflows/runs/agent.py example --topic "$(TOPIC)"
+
+
+
+agent_book-quote:
+
+	python apps/agent_book/workflows/runs/agent.py quote --query "$(QUERY)"
+
+
+
+agent_book-chat:
+
+	python apps/agent_book/workflows/runs/agent.py chat --message "$(MESSAGE)"
+
+
+
+agent_book-feedback:
+
+	python apps/agent_book/workflows/runs/agent.py feedback --comment "$(COMMENT)"
+
+
+
+agent_book-eval:
+
+	python apps/agent_book/evals/run_azure.py
 
 
 

@@ -1,0 +1,12 @@
+dag_id: knowledge
+schedule: "@weekly"
+catchup: false
+tags: [agent_book, knowledge]
+owner: data-platform
+process: knowledge
+product: agent_book
+orchestration: orchestration/knowledge.yml
+
+tasks:
+  - task_id: ingest_book
+    orchestrator: orchestrator.knowledge:run_ingest_book

@@ -1,0 +1,7 @@
+issue_kinds:
+  - ask
+  - note
+
+book:
+  source_id: fundamentos_engenharia_dados
+  title: Fundamentos de Engenharia de Dados

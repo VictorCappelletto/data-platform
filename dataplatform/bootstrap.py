@@ -28,4 +28,18 @@ def bootstrap(app_id: str | None = None) -> Path:
     for path in (root, app_path):
         if path.is_dir() and str(path) not in sys.path:
             sys.path.insert(0, str(path))
+    _drop_runner_script_dir_from_path(app_path)
     return root
+
+
+def _drop_runner_script_dir_from_path(app_path: Path) -> None:
+    """Prevent workflows/runs/<process>.py from shadowing app domain packages."""
+    if not sys.argv:
+        return
+    script_dir = Path(sys.argv[0]).resolve().parent
+    runs_dir = app_path / "workflows" / "runs"
+    if script_dir != runs_dir:
+        return
+    script = str(script_dir)
+    while script in sys.path:
+        sys.path.remove(script)

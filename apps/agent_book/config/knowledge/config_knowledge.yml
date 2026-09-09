@@ -1,0 +1,26 @@
+process: knowledge
+
+book:
+  domain: knowledge
+  table: chunks
+  source_id: fundamentos_engenharia_dados
+  title: Fundamentos de Engenharia de Dados
+  authors: Joe Reis, Matt Housley
+  path: seeds/fundamentos-de-engenharia-de-dados.txt
+  search_provider: local
+  search_index: agent_book-knowledge
+  embedding_deployment: text-embedding-3-small
+  embedding_dimensions: 1536
+  api_version: "2024-10-21"
+  chunk:
+    max_chars: 1200
+    overlap: 180
+    min_chars: 80
+
+environments:
+  local:
+    book:
+      search_provider: local
+  dev:
+    book:
+      search_provider: azure_search

@@ -77,3 +77,23 @@ curated/   customers_RJ.csv
 Commands: `make azure-adf-trigger` → `make azure-olist-transform` → `make azure-olist-publish-sql`
 
 See [power-bi-setup.md](./power-bi-setup.md), [olist-databricks-mapping.md](./olist-databricks-mapping.md).
+
+## Agent Book agent (`agent_book`)
+
+Lake root (local): `data/lake/local/agent_book/`
+
+```text
+seeds/*.txt  (livro local, gitignored)
+        │
+        ▼  knowledge ingest
+bronze/knowledge/chunks
+        │
+        └─► (Azure) embed → AI Search
+        │
+        ▼  LangGraph
+        expand → retrieve → ask | note | uncovered
+        ├─► ask  (resposta + página)
+        └─► note → gold/agent/notes
+```
+
+Commands: `make agent_book-ingest` → `make agent_book-ask QUESTION="..."` → `make agent_book-note TOPIC="..."`

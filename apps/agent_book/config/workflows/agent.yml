@@ -1,0 +1,22 @@
+dag_id: agent
+schedule: "@once"
+catchup: false
+tags: [agent_book, agent]
+owner: data-platform
+process: agent
+product: agent_book
+orchestration: orchestration/agent.yml
+
+tasks:
+  - task_id: ask
+    orchestrator: orchestrator.agent:run_ask
+  - task_id: note
+    orchestrator: orchestrator.agent:run_note
+  - task_id: example
+    orchestrator: orchestrator.agent:run_example
+  - task_id: quote
+    orchestrator: orchestrator.agent:run_quote
+  - task_id: chat
+    orchestrator: orchestrator.agent:run_chat
+  - task_id: feedback
+    orchestrator: orchestrator.agent:run_feedback

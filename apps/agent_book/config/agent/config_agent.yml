@@ -1,0 +1,27 @@
+process: agent
+
+agent_book:
+  domain: agent
+  table: notes
+  profile_table: profile
+  session_table: session
+  trace_table: trace
+  name: Agent Book
+  llm_provider: echo
+  search_provider: local
+  chat_deployment: gpt-5-mini
+  embedding_deployment: text-embedding-3-small
+  api_version: "2025-04-01-preview"
+  search_index: agent_book-knowledge
+  embedding_dimensions: 1536
+  top_k: 4
+
+environments:
+  local:
+    agent_book:
+      llm_provider: echo
+      search_provider: local
+  dev:
+    agent_book:
+      llm_provider: azure_openai
+      search_provider: azure_search
